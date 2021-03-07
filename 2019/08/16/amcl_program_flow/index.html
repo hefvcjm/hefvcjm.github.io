@@ -1,0 +1,1314 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next gemini use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2">
+
+<link rel="stylesheet" href="/css/main.css?v=7.0.1">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.0.1">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.0.1">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.0.1">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.0.1" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.0.1',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="概述阅读AMCL源码，首先撇开算法具体细节以及技术细节，对ACML核心程序流程进行整理，看懂AMCL由外部数据触发到完成定位的整个过程。这里读的是navigation仓库melodic-devel分支，提交id为b52e0ea9362131dc81326da471792ab8698c9564的源码。 程序入口先找到程序入口，也就是main函数，可以直接搜索main就可以很快定位到该函数了，主函数很">
+<meta name="keywords" content="ROS,navigation,AMCL">
+<meta property="og:type" content="article">
+<meta property="og:title" content="AMCL源码阅读(1)——程序流程">
+<meta property="og:url" content="http://www.hefvcjm.com/2019/08/16/amcl_program_flow/index.html">
+<meta property="og:site_name" content="hefvcjm">
+<meta property="og:description" content="概述阅读AMCL源码，首先撇开算法具体细节以及技术细节，对ACML核心程序流程进行整理，看懂AMCL由外部数据触发到完成定位的整个过程。这里读的是navigation仓库melodic-devel分支，提交id为b52e0ea9362131dc81326da471792ab8698c9564的源码。 程序入口先找到程序入口，也就是main函数，可以直接搜索main就可以很快定位到该函数了，主函数很">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2021-03-07T17:51:41.406Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="AMCL源码阅读(1)——程序流程">
+<meta name="twitter:description" content="概述阅读AMCL源码，首先撇开算法具体细节以及技术细节，对ACML核心程序流程进行整理，看懂AMCL由外部数据触发到完成定位的整个过程。这里读的是navigation仓库melodic-devel分支，提交id为b52e0ea9362131dc81326da471792ab8698c9564的源码。 程序入口先找到程序入口，也就是main函数，可以直接搜索main就可以很快定位到该函数了，主函数很">
+
+
+
+
+
+
+  <link rel="canonical" href="http://www.hefvcjm.com/2019/08/16/amcl_program_flow/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>AMCL源码阅读(1)——程序流程 | hefvcjm</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript><!-- hexo-inject:begin --><!-- hexo-inject:end -->
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">hefvcjm</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+    
+      
+    
+
+    
+      
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+
+    
+    
+    
+      
+    
+
+    
+      
+    
+
+    <a href="/about/" rel="section"><i class="menu-item-icon fa fa-fw fa-user"></i> <br>关于</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+    
+      
+    
+
+    
+      
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档<span class="badge">17</span></a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+
+    
+    
+    
+      
+    
+
+    
+      
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>分类<span class="badge">7</span></a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+
+    
+    
+    
+      
+    
+
+    
+      
+    
+
+    <a href="/tags/" rel="section"><i class="menu-item-icon fa fa-fw fa-tags"></i> <br>标签<span class="badge">23</span></a>
+
+  </li>
+
+      
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br>搜索</a>
+        </li>
+      
+    </ul>
+  
+
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off" placeholder="搜索..." spellcheck="false" type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+            
+
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.hefvcjm.com/2019/08/16/amcl_program_flow/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Mike John">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/header.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="hefvcjm">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">AMCL源码阅读(1)——程序流程
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2019-08-16 19:20:30" itemprop="dateCreated datePublished" datetime="2019-08-16T19:20:30+08:00">2019-08-16</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2021-03-08 01:51:41" itemprop="dateModified" datetime="2021-03-08T01:51:41+08:00">2021-03-08</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/ROS/" itemprop="url" rel="index"><span itemprop="name">ROS</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h1 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h1><p>阅读AMCL源码，首先撇开算法具体细节以及技术细节，对ACML核心程序流程进行整理，看懂AMCL由外部数据触发到完成定位的整个过程。这里读的是<a href="https://github.com/ros-planning/navigation.git" target="_blank" rel="noopener">navigation仓库</a>melodic-devel分支，提交<code>id</code>为<code>b52e0ea9362131dc81326da471792ab8698c9564</code>的源码。</p>
+<h1 id="程序入口"><a href="#程序入口" class="headerlink" title="程序入口"></a>程序入口</h1><p>先找到程序入口，也就是<code>main</code>函数，可以直接搜索<code>main</code>就可以很快定位到该函数了，主函数很短，如下</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">int</span></span><br><span class="line">main(<span class="keyword">int</span> argc, <span class="keyword">char</span>** argv)</span><br><span class="line">&#123;</span><br><span class="line">  ros::init(argc, argv, <span class="string">"amcl"</span>);</span><br><span class="line">  ros::NodeHandle nh;</span><br><span class="line"></span><br><span class="line">  <span class="comment">// Override default sigint handler</span></span><br><span class="line">  signal(SIGINT, sigintHandler);</span><br><span class="line"></span><br><span class="line">  <span class="comment">// Make our node available to sigintHandler</span></span><br><span class="line">  amcl_node_ptr.reset(<span class="keyword">new</span> AmclNode());</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span> (argc == <span class="number">1</span>)</span><br><span class="line">  &#123;</span><br><span class="line">    <span class="comment">// run using ROS input</span></span><br><span class="line">    ros::spin();</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">else</span> <span class="keyword">if</span> ((argc == <span class="number">3</span>) &amp;&amp; (<span class="built_in">std</span>::<span class="built_in">string</span>(argv[<span class="number">1</span>]) == <span class="string">"--run-from-bag"</span>))</span><br><span class="line">  &#123;</span><br><span class="line">    amcl_node_ptr-&gt;runFromBag(argv[<span class="number">2</span>]);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="comment">// Without this, our boost locks are not shut down nicely</span></span><br><span class="line">  amcl_node_ptr.reset();</span><br><span class="line"></span><br><span class="line">  <span class="comment">// To quote Morgan, Hooray!</span></span><br><span class="line">  <span class="keyword">return</span>(<span class="number">0</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以看到，主函数中简单的初始化一下节点，初始化<code>AmclNode</code>类，然后根据命令参数的个数<code>argc</code>分别有两种执行方式，一种是直接接受传感器数据运行，一种是利用<code>bag</code>文件回放数据运行。我们跳到<code>runFromBag</code>函数中，可以看到利用<code>bag</code>文件数据文件运行的方式大概就是回放<code>bag</code>文件中的话题数据，不断读取并发布。所以，核心的流程还是一致的。</p>
+<h1 id="初始化"><a href="#初始化" class="headerlink" title="初始化"></a>初始化</h1><p>在主函数中可以看到，那里直接实例化<code>AmclNode</code>类后就进入<code>ros::spin();</code>。因此，从<code>AmclNode</code>构造函数开始看，可以看到，在构造函数中，<code>AmclNode</code>对很对成员变量进行初始化以及从参数服务器读取各个配置参数，然后注册几个话题的发布和订阅以及一些服务，大致就完成了。所以初始化完成之后，主要入口就是几个话题和服务了。  </p>
+<p>这里为了把握住主线，我们还是得找出核心的东西来，首先服务和发布的话题先不管，因为服务相对还是比较“被动”地调用，而发布的话题，则是对外的，也先不管。因此，就主要关注一下订阅的几个话题了，包括<code>scan</code>，<code>initialpose</code>和<code>map</code>。其实还有<code>tf</code>，不过<code>tf</code>主要就是读一下一些变化或者发布一下，主要在代码执行过程中需要的时候查询一下获取信息就完事了。</p>
+<h1 id="回调函数"><a href="#回调函数" class="headerlink" title="回调函数"></a>回调函数</h1><p>经过上面的整理，我们的重点就落在了几个订阅话题的回调函数中了，也不多，也就仨。一看就可以看出来哪个是重头戏了，<code>initialpose</code>和<code>map</code>话题回调函数中其实还是设置算法参数，分别设置初始化姿态和栅格地图。到这里，核心的部分也就出来了，就是订阅雷达话题<code>scan</code>的回调函数<code>laserReceived</code>,这里将这段代码贴出来，在注释中说明到底干了啥！</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br><span class="line">183</span><br><span class="line">184</span><br><span class="line">185</span><br><span class="line">186</span><br><span class="line">187</span><br><span class="line">188</span><br><span class="line">189</span><br><span class="line">190</span><br><span class="line">191</span><br><span class="line">192</span><br><span class="line">193</span><br><span class="line">194</span><br><span class="line">195</span><br><span class="line">196</span><br><span class="line">197</span><br><span class="line">198</span><br><span class="line">199</span><br><span class="line">200</span><br><span class="line">201</span><br><span class="line">202</span><br><span class="line">203</span><br><span class="line">204</span><br><span class="line">205</span><br><span class="line">206</span><br><span class="line">207</span><br><span class="line">208</span><br><span class="line">209</span><br><span class="line">210</span><br><span class="line">211</span><br><span class="line">212</span><br><span class="line">213</span><br><span class="line">214</span><br><span class="line">215</span><br><span class="line">216</span><br><span class="line">217</span><br><span class="line">218</span><br><span class="line">219</span><br><span class="line">220</span><br><span class="line">221</span><br><span class="line">222</span><br><span class="line">223</span><br><span class="line">224</span><br><span class="line">225</span><br><span class="line">226</span><br><span class="line">227</span><br><span class="line">228</span><br><span class="line">229</span><br><span class="line">230</span><br><span class="line">231</span><br><span class="line">232</span><br><span class="line">233</span><br><span class="line">234</span><br><span class="line">235</span><br><span class="line">236</span><br><span class="line">237</span><br><span class="line">238</span><br><span class="line">239</span><br><span class="line">240</span><br><span class="line">241</span><br><span class="line">242</span><br><span class="line">243</span><br><span class="line">244</span><br><span class="line">245</span><br><span class="line">246</span><br><span class="line">247</span><br><span class="line">248</span><br><span class="line">249</span><br><span class="line">250</span><br><span class="line">251</span><br><span class="line">252</span><br><span class="line">253</span><br><span class="line">254</span><br><span class="line">255</span><br><span class="line">256</span><br><span class="line">257</span><br><span class="line">258</span><br><span class="line">259</span><br><span class="line">260</span><br><span class="line">261</span><br><span class="line">262</span><br><span class="line">263</span><br><span class="line">264</span><br><span class="line">265</span><br><span class="line">266</span><br><span class="line">267</span><br><span class="line">268</span><br><span class="line">269</span><br><span class="line">270</span><br><span class="line">271</span><br><span class="line">272</span><br><span class="line">273</span><br><span class="line">274</span><br><span class="line">275</span><br><span class="line">276</span><br><span class="line">277</span><br><span class="line">278</span><br><span class="line">279</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">void</span></span><br><span class="line">AmclNode::laserReceived(<span class="keyword">const</span> sensor_msgs::LaserScanConstPtr&amp; laser_scan)</span><br><span class="line">&#123;</span><br><span class="line">  <span class="comment">// 首先获取当前激光雷达的frame_id</span></span><br><span class="line">  <span class="built_in">std</span>::<span class="built_in">string</span> laser_scan_frame_id = stripSlash(laser_scan-&gt;header.frame_id);</span><br><span class="line">  <span class="comment">// 记录当前时间</span></span><br><span class="line">  last_laser_received_ts_ = ros::Time::now();</span><br><span class="line">  <span class="keyword">if</span>( map_ == <span class="literal">NULL</span> ) &#123;</span><br><span class="line">    <span class="keyword">return</span>;</span><br><span class="line">  &#125;</span><br><span class="line">  boost::recursive_mutex::<span class="function">scoped_lock <span class="title">lr</span><span class="params">(configuration_mutex_)</span></span>;</span><br><span class="line">  <span class="keyword">int</span> laser_index = <span class="number">-1</span>;</span><br><span class="line"></span><br><span class="line">  <span class="comment">// Do we have the base-&gt;base_laser Tx yet?</span></span><br><span class="line">  <span class="comment">// 查询一下该雷达之前是不是有记录过，否则说明就是新的雷达，也就是第一次收到该雷达数据</span></span><br><span class="line">  <span class="keyword">if</span>(frame_to_laser_.find(laser_scan_frame_id) == frame_to_laser_.end())</span><br><span class="line">  &#123;</span><br><span class="line">    <span class="comment">// 如果当真是新的雷达，则进入到这里</span></span><br><span class="line">    ROS_DEBUG(<span class="string">"Setting up laser %d (frame_id=%s)\n"</span>, (<span class="keyword">int</span>)frame_to_laser_.size(), laser_scan_frame_id.c_str());</span><br><span class="line">    <span class="comment">// 将雷达先用自定义的类封装一下并且保存到雷达列表，并且设置对应的更新标记，和在雷达列表中的索引，后面要用到</span></span><br><span class="line">    lasers_.push_back(<span class="keyword">new</span> AMCLLaser(*laser_));</span><br><span class="line">    lasers_update_.push_back(<span class="literal">true</span>);</span><br><span class="line">    laser_index = frame_to_laser_.size();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 接下来主要就是通过tf查询该雷达与base_frame之间的转换，即雷达相对于base_link的位姿</span></span><br><span class="line">    geometry_msgs::PoseStamped ident;</span><br><span class="line">    ident.header.frame_id = laser_scan_frame_id;</span><br><span class="line">    ident.header.stamp = ros::Time();</span><br><span class="line">    tf2::toMsg(tf2::Transform::getIdentity(), ident.pose);</span><br><span class="line"></span><br><span class="line">    geometry_msgs::PoseStamped laser_pose;</span><br><span class="line">    <span class="keyword">try</span></span><br><span class="line">    &#123;</span><br><span class="line">      <span class="keyword">this</span>-&gt;tf_-&gt;transform(ident, laser_pose, base_frame_id_);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">catch</span>(tf2::TransformException&amp; e)</span><br><span class="line">    &#123;</span><br><span class="line">      ROS_ERROR(<span class="string">"Couldn't transform from %s to %s, "</span></span><br><span class="line">                <span class="string">"even though the message notifier is in use"</span>,</span><br><span class="line">                laser_scan_frame_id.c_str(),</span><br><span class="line">                base_frame_id_.c_str());</span><br><span class="line">      <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">pf_vector_t</span> laser_pose_v;</span><br><span class="line">    laser_pose_v.v[<span class="number">0</span>] = laser_pose.pose.position.x;</span><br><span class="line">    laser_pose_v.v[<span class="number">1</span>] = laser_pose.pose.position.y;</span><br><span class="line">    <span class="comment">// laser mounting angle gets computed later -&gt; set to 0 here!</span></span><br><span class="line">    laser_pose_v.v[<span class="number">2</span>] = <span class="number">0</span>;</span><br><span class="line">    <span class="comment">// 到这里查询完了该雷达相对于base_link的位姿了，就调用自定义封装激光的类进行设置这个参数，也就是保存下来</span></span><br><span class="line">    lasers_[laser_index]-&gt;SetLaserPose(laser_pose_v);</span><br><span class="line">    ROS_DEBUG(<span class="string">"Received laser's pose wrt robot: %.3f %.3f %.3f"</span>,</span><br><span class="line">              laser_pose_v.v[<span class="number">0</span>],</span><br><span class="line">              laser_pose_v.v[<span class="number">1</span>],</span><br><span class="line">              laser_pose_v.v[<span class="number">2</span>]);</span><br><span class="line">    <span class="comment">// 最后添加key-value到一个map中，该map作用是利用雷达的frame_id查询该雷达在列表中的索引，</span></span><br><span class="line">    <span class="comment">// 也就是key为雷达的frame_id，value为雷达在列表中的索引</span></span><br><span class="line">    frame_to_laser_[laser_scan_frame_id] = laser_index;</span><br><span class="line">    <span class="comment">// 到这里完成了保存新的雷达信息了</span></span><br><span class="line">  &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">    <span class="comment">// 如果该雷达在记录中存在，那么就获取该雷达索引</span></span><br><span class="line">    <span class="comment">// we have the laser pose, retrieve laser index</span></span><br><span class="line">    laser_index = frame_to_laser_[laser_scan_frame_id];</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="comment">// Where was the robot when this scan was taken?</span></span><br><span class="line">  <span class="comment">// 获取当前机器人位姿</span></span><br><span class="line">  <span class="keyword">pf_vector_t</span> pose;</span><br><span class="line">  <span class="keyword">if</span>(!getOdomPose(latest_odom_pose_, pose.v[<span class="number">0</span>], pose.v[<span class="number">1</span>], pose.v[<span class="number">2</span>],</span><br><span class="line">                  laser_scan-&gt;header.stamp, base_frame_id_))</span><br><span class="line">  &#123;</span><br><span class="line">    ROS_ERROR(<span class="string">"Couldn't determine robot's pose associated with laser scan"</span>);</span><br><span class="line">    <span class="keyword">return</span>;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">  <span class="keyword">pf_vector_t</span> delta = pf_vector_zero();</span><br><span class="line"></span><br><span class="line">  <span class="comment">// 下来这部分就是根据是否已经初始化粒子滤波来设置每个雷达是否需要更新的标记</span></span><br><span class="line">  <span class="keyword">if</span>(pf_init_)</span><br><span class="line">  &#123;</span><br><span class="line">    <span class="comment">// 如果已经初始化粒子滤波器</span></span><br><span class="line">    <span class="comment">// Compute change in pose</span></span><br><span class="line">    <span class="comment">//delta = pf_vector_coord_sub(pose, pf_odom_pose_);</span></span><br><span class="line">    delta.v[<span class="number">0</span>] = pose.v[<span class="number">0</span>] - pf_odom_pose_.v[<span class="number">0</span>];</span><br><span class="line">    delta.v[<span class="number">1</span>] = pose.v[<span class="number">1</span>] - pf_odom_pose_.v[<span class="number">1</span>];</span><br><span class="line">    delta.v[<span class="number">2</span>] = angle_diff(pose.v[<span class="number">2</span>], pf_odom_pose_.v[<span class="number">2</span>]);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// See if we should update the filter</span></span><br><span class="line">    <span class="keyword">bool</span> update = <span class="built_in">fabs</span>(delta.v[<span class="number">0</span>]) &gt; d_thresh_ ||</span><br><span class="line">                  <span class="built_in">fabs</span>(delta.v[<span class="number">1</span>]) &gt; d_thresh_ ||</span><br><span class="line">                  <span class="built_in">fabs</span>(delta.v[<span class="number">2</span>]) &gt; a_thresh_;</span><br><span class="line">    update = update || m_force_update;</span><br><span class="line">    m_force_update=<span class="literal">false</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Set the laser update flags</span></span><br><span class="line">    <span class="comment">// 在上面计算后，在两种情况下全部雷达需要设置更新标记</span></span><br><span class="line">    <span class="comment">// 一种是机器人运动运动距离超过设定的距离</span></span><br><span class="line">    <span class="comment">// 一种是设置了没有运动也强制更新</span></span><br><span class="line">    <span class="keyword">if</span>(update)</span><br><span class="line">      <span class="keyword">for</span>(<span class="keyword">unsigned</span> <span class="keyword">int</span> i=<span class="number">0</span>; i &lt; lasers_update_.size(); i++)</span><br><span class="line">        lasers_update_[i] = <span class="literal">true</span>;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">bool</span> force_publication = <span class="literal">false</span>;</span><br><span class="line">  <span class="keyword">if</span>(!pf_init_)</span><br><span class="line">  &#123;</span><br><span class="line">    <span class="comment">// 如果没有初始化粒子滤波器</span></span><br><span class="line">    <span class="comment">// Pose at last filter update</span></span><br><span class="line">    pf_odom_pose_ = pose;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 在这里可以看到只有这个地方设置了pf_init_ = true</span></span><br><span class="line">    <span class="comment">// 也就是说该标记为只有在第一次收到雷达数据后才设置为true</span></span><br><span class="line">    <span class="comment">// 即第一次接收到雷达数据进入的是这里</span></span><br><span class="line">    <span class="comment">// 后面的在没有异常（重新加载地图、重新发布初始化位姿等等）的情况下将都不会进入这里</span></span><br><span class="line">    <span class="comment">// Filter is now initialized</span></span><br><span class="line">    pf_init_ = <span class="literal">true</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 这里说明在第一次收到雷达数据的时候默认要全部更新</span></span><br><span class="line">    <span class="comment">// Should update sensor data</span></span><br><span class="line">    <span class="keyword">for</span>(<span class="keyword">unsigned</span> <span class="keyword">int</span> i=<span class="number">0</span>; i &lt; lasers_update_.size(); i++)</span><br><span class="line">      lasers_update_[i] = <span class="literal">true</span>;</span><br><span class="line"></span><br><span class="line">    force_publication = <span class="literal">true</span>;</span><br><span class="line"></span><br><span class="line">    resample_count_ = <span class="number">0</span>;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">// If the robot has moved, update the filter</span></span><br><span class="line">  <span class="comment">// 如果粒子滤波器已经初始化，并且当前雷达标记为需要更新，则进入下面的代码块</span></span><br><span class="line">  <span class="keyword">else</span> <span class="keyword">if</span>(pf_init_ &amp;&amp; lasers_update_[laser_index])</span><br><span class="line">  &#123;</span><br><span class="line">    <span class="comment">// 这里面可以看到的是，利用UpdateAction更新粒子滤波器，确切的说就是用里程计预测位姿</span></span><br><span class="line">    <span class="comment">//printf("pose\n");</span></span><br><span class="line">    <span class="comment">//pf_vector_fprintf(pose, stdout, "%.3f");</span></span><br><span class="line"></span><br><span class="line">    AMCLOdomData odata;</span><br><span class="line">    odata.pose = pose;</span><br><span class="line">    <span class="comment">// HACK</span></span><br><span class="line">    <span class="comment">// Modify the delta in the action data so the filter gets</span></span><br><span class="line">    <span class="comment">// updated correctly</span></span><br><span class="line">    odata.delta = delta;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Use the action data to update the filter</span></span><br><span class="line">    odom_-&gt;UpdateAction(pf_, (AMCLSensorData*)&amp;odata);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Pose at last filter update</span></span><br><span class="line">    <span class="comment">//this-&gt;pf_odom_pose = pose;</span></span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">bool</span> resampled = <span class="literal">false</span>;</span><br><span class="line">  <span class="comment">// If the robot has moved, update the filter</span></span><br><span class="line">  <span class="comment">// 如果当前雷达标记了更新，下面步骤就是进行更新步骤，也就是利用雷达数据更细粒子的权重</span></span><br><span class="line">  <span class="keyword">if</span>(lasers_update_[laser_index])</span><br><span class="line">  &#123;</span><br><span class="line">    <span class="comment">// 下面一大段大概时获取当前雷达的一个AMCLLaserData对象</span></span><br><span class="line">    <span class="comment">// 包括各种转换和判断等等</span></span><br><span class="line">    AMCLLaserData ldata;</span><br><span class="line">    ldata.sensor = lasers_[laser_index];</span><br><span class="line">    ldata.range_count = laser_scan-&gt;ranges.size();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// To account for lasers that are mounted upside-down, we determine the</span></span><br><span class="line">    <span class="comment">// min, max, and increment angles of the laser in the base frame.</span></span><br><span class="line">    <span class="comment">//</span></span><br><span class="line">    <span class="comment">// Construct min and max angles of laser, in the base_link frame.</span></span><br><span class="line">    tf2::Quaternion q;</span><br><span class="line">    q.setRPY(<span class="number">0.0</span>, <span class="number">0.0</span>, laser_scan-&gt;angle_min);</span><br><span class="line">    geometry_msgs::QuaternionStamped min_q, inc_q;</span><br><span class="line">    min_q.header.stamp = laser_scan-&gt;header.stamp;</span><br><span class="line">    min_q.header.frame_id = stripSlash(laser_scan-&gt;header.frame_id);</span><br><span class="line">    tf2::convert(q, min_q.quaternion);</span><br><span class="line"></span><br><span class="line">    q.setRPY(<span class="number">0.0</span>, <span class="number">0.0</span>, laser_scan-&gt;angle_min + laser_scan-&gt;angle_increment);</span><br><span class="line">    inc_q.header = min_q.header;</span><br><span class="line">    tf2::convert(q, inc_q.quaternion);</span><br><span class="line">    <span class="keyword">try</span></span><br><span class="line">    &#123;</span><br><span class="line">      tf_-&gt;transform(min_q, min_q, base_frame_id_);</span><br><span class="line">      tf_-&gt;transform(inc_q, inc_q, base_frame_id_);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">catch</span>(tf2::TransformException&amp; e)</span><br><span class="line">    &#123;</span><br><span class="line">      ROS_WARN(<span class="string">"Unable to transform min/max laser angles into base frame: %s"</span>,</span><br><span class="line">               e.what());</span><br><span class="line">      <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">double</span> angle_min = tf2::getYaw(min_q.quaternion);</span><br><span class="line">    <span class="keyword">double</span> angle_increment = tf2::getYaw(inc_q.quaternion) - angle_min;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// wrapping angle to [-pi .. pi]</span></span><br><span class="line">    angle_increment = <span class="built_in">fmod</span>(angle_increment + <span class="number">5</span>*M_PI, <span class="number">2</span>*M_PI) - M_PI;</span><br><span class="line"></span><br><span class="line">    ROS_DEBUG(<span class="string">"Laser %d angles in base frame: min: %.3f inc: %.3f"</span>, laser_index, angle_min, angle_increment);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Apply range min/max thresholds, if the user supplied them</span></span><br><span class="line">    <span class="keyword">if</span>(laser_max_range_ &gt; <span class="number">0.0</span>)</span><br><span class="line">      ldata.range_max = <span class="built_in">std</span>::min(laser_scan-&gt;range_max, (<span class="keyword">float</span>)laser_max_range_);</span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">      ldata.range_max = laser_scan-&gt;range_max;</span><br><span class="line">    <span class="keyword">double</span> range_min;</span><br><span class="line">    <span class="keyword">if</span>(laser_min_range_ &gt; <span class="number">0.0</span>)</span><br><span class="line">      range_min = <span class="built_in">std</span>::max(laser_scan-&gt;range_min, (<span class="keyword">float</span>)laser_min_range_);</span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">      range_min = laser_scan-&gt;range_min;</span><br><span class="line">    <span class="comment">// The AMCLLaserData destructor will free this memory</span></span><br><span class="line">    ldata.ranges = <span class="keyword">new</span> <span class="keyword">double</span>[ldata.range_count][<span class="number">2</span>];</span><br><span class="line">    ROS_ASSERT(ldata.ranges);</span><br><span class="line">    <span class="keyword">for</span>(<span class="keyword">int</span> i=<span class="number">0</span>;i&lt;ldata.range_count;i++)</span><br><span class="line">    &#123;</span><br><span class="line">      <span class="comment">// amcl doesn't (yet) have a concept of min range.  So we'll map short</span></span><br><span class="line">      <span class="comment">// readings to max range.</span></span><br><span class="line">      <span class="keyword">if</span>(laser_scan-&gt;ranges[i] &lt;= range_min)</span><br><span class="line">        ldata.ranges[i][<span class="number">0</span>] = ldata.range_max;</span><br><span class="line">      <span class="keyword">else</span></span><br><span class="line">        ldata.ranges[i][<span class="number">0</span>] = laser_scan-&gt;ranges[i];</span><br><span class="line">      <span class="comment">// Compute bearing</span></span><br><span class="line">      ldata.ranges[i][<span class="number">1</span>] = angle_min +</span><br><span class="line">              (i * angle_increment);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 到这里算是已经获得了当前雷达的AMCLLaserData对象了</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// 然后利用UpdateSensor进行更新粒子权重</span></span><br><span class="line">    lasers_[laser_index]-&gt;UpdateSensor(pf_, (AMCLSensorData*)&amp;ldata);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 更新了权重之后，重新清空了当前雷达的更新标记</span></span><br><span class="line">    lasers_update_[laser_index] = <span class="literal">false</span>;</span><br><span class="line"></span><br><span class="line">    pf_odom_pose_ = pose;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Resample the particles</span></span><br><span class="line">    <span class="comment">// 完成了预测和更新后，就开始重要性采样了</span></span><br><span class="line">    <span class="comment">// 这里设置了重要性采样的周期，也就是每接收几次雷达数据采样一次</span></span><br><span class="line">    <span class="keyword">if</span>(!(++resample_count_ % resample_interval_))</span><br><span class="line">    &#123;</span><br><span class="line">      pf_update_resample(pf_);</span><br><span class="line">      <span class="comment">// 采样完后设置一下说明已经采样的标记</span></span><br><span class="line">      resampled = <span class="literal">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 到这里粒子滤波的基本过程已经完成了</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">pf_sample_set_t</span>* <span class="built_in">set</span> = pf_-&gt;sets + pf_-&gt;current_set;</span><br><span class="line">    ROS_DEBUG(<span class="string">"Num samples: %d\n"</span>, <span class="built_in">set</span>-&gt;sample_count);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Publish the resulting cloud</span></span><br><span class="line">    <span class="comment">// <span class="doctag">TODO:</span> set maximum rate for publishing</span></span><br><span class="line">    <span class="comment">// 这里就开始发布当前的全部粒子位姿</span></span><br><span class="line">    <span class="keyword">if</span> (!m_force_update)</span><br><span class="line">    &#123;</span><br><span class="line">      geometry_msgs::PoseArray cloud_msg;</span><br><span class="line">      cloud_msg.header.stamp = ros::Time::now();</span><br><span class="line">      cloud_msg.header.frame_id = global_frame_id_;</span><br><span class="line">      cloud_msg.poses.resize(<span class="built_in">set</span>-&gt;sample_count);</span><br><span class="line">      <span class="keyword">for</span>(<span class="keyword">int</span> i=<span class="number">0</span>;i&lt;<span class="built_in">set</span>-&gt;sample_count;i++)</span><br><span class="line">      &#123;</span><br><span class="line">        cloud_msg.poses[i].position.x = <span class="built_in">set</span>-&gt;samples[i].pose.v[<span class="number">0</span>];</span><br><span class="line">        cloud_msg.poses[i].position.y = <span class="built_in">set</span>-&gt;samples[i].pose.v[<span class="number">1</span>];</span><br><span class="line">        cloud_msg.poses[i].position.z = <span class="number">0</span>;</span><br><span class="line">        tf2::Quaternion q;</span><br><span class="line">        q.setRPY(<span class="number">0</span>, <span class="number">0</span>, <span class="built_in">set</span>-&gt;samples[i].pose.v[<span class="number">2</span>]);</span><br><span class="line">        tf2::convert(q, cloud_msg.poses[i].orientation);</span><br><span class="line">      &#125;</span><br><span class="line">      particlecloud_pub_.publish(cloud_msg);</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="comment">// 如果已经采样，或者强制发布当前机器人位姿，则进入下面流程</span></span><br><span class="line">  <span class="comment">// 最后这里主要就是根据例子加权估计当前位姿并发布，以及发布一下odom到map的变换关系</span></span><br><span class="line">  <span class="keyword">if</span>(resampled || force_publication)</span><br><span class="line">  &#123;</span><br><span class="line">    ... <span class="comment">// 这里省略若干行</span></span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">else</span> <span class="keyword">if</span>(latest_tf_valid_)</span><br><span class="line">  &#123;</span><br><span class="line">    ... <span class="comment">// 这里省略若干行</span></span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  diagnosic_updater_.update();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>上面就是Amcl执行的核心流程，可以说思路是很明确的，在各种情况判断后，依次进行<code>odom_-&gt;UpdateAction(pf_, (AMCLSensorData*)&amp;odata);</code>，<code>lasers_[laser_index]-&gt;UpdateSensor(pf_, (AMCLSensorData*)&amp;ldata);</code>和<code>pf_update_resample(pf_);</code>，这三步就是粒子滤波三个核心步骤的接口，分别实现预测、更新和重要性采样算法。</p>
+<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><ul>
+<li><a href="http://wiki.ros.org/amcl" target="_blank" rel="noopener">wiki ROS Amcl</a></li>
+</ul>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/ROS/" rel="tag"># ROS</a>
+          
+            <a href="/tags/navigation/" rel="tag"># navigation</a>
+          
+            <a href="/tags/AMCL/" rel="tag"># AMCL</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2019/07/07/markdown_learning/" rel="next" title="Markdown基础语法学习">
+                <i class="fa fa-chevron-left"></i> Markdown基础语法学习
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2019/09/20/move_base_leaning_firework_1/" rel="prev" title="ROS源码学习move_base(1)——导航流程">
+                ROS源码学习move_base(1)——导航流程 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image" src="/images/header.jpg" alt="Mike John">
+            
+              <p class="site-author-name" itemprop="name">Mike John</p>
+              <div class="site-description motion-element" itemprop="description"></div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">17</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">7</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  
+                    
+                      <a href="/tags/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">23</span>
+                    <span class="site-state-item-name">标签</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+            <div class="links-of-author motion-element">
+              
+                <span class="links-of-author-item">
+                  
+                  
+                    
+                  
+                  
+                    
+                  
+                  <a href="mailto:hef1995@qq.com" title="E-Mail &rarr; mailto:hef1995@qq.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+                </span>
+              
+            </div>
+          
+
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#概述"><span class="nav-text">概述</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#程序入口"><span class="nav-text">程序入口</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#初始化"><span class="nav-text">初始化</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#回调函数"><span class="nav-text">回调函数</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#参考"><span class="nav-text">参考</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2021</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Mike John</span>
+
+  
+
+  
+</div>
+
+
+
+
+
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+          <span id="scrollpercent"><span>0</span>%</span>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+
+  
+
+
+  <script src="/js/src/utils.js?v=7.0.1"></script>
+
+  <script src="/js/src/motion.js?v=7.0.1"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/src/affix.js?v=7.0.1"></script>
+
+  <script src="/js/src/schemes/pisces.js?v=7.0.1"></script>
+
+
+
+
+  
+  <script src="/js/src/scrollspy.js?v=7.0.1"></script>
+<script src="/js/src/post-details.js?v=7.0.1"></script>
+
+
+
+  
+
+
+  <script src="/js/src/next-boot.js?v=7.0.1"></script>
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+
+
+  
+  <script>
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url).replace(/\/{2,}/g, '/');
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x"></i></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x"></i></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script><!-- hexo-inject:begin --><!-- Begin: Injected MathJax -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({"tex2jax":{"inlineMath":[["$","$"],["\\(","\\)"]],"skipTags":["script","noscript","style","textarea","pre","code"],"processEscapes":true},"TeX":{"equationNumbers":{"autoNumber":"AMS"}}});
+</script>
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i=0; i < all.length; i += 1) {
+      all[i].SourceElement().parentNode.className += ' has-jax';
+    }
+  });
+</script>
+
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js">
+</script>
+<!-- End: Injected MathJax -->
+<!-- hexo-inject:end -->
+
+
+
+
+
+  
+
+  
+
+  
+  
+
+  
+  
+
+  
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

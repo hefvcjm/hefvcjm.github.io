@@ -1,0 +1,1501 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next gemini use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2">
+
+<link rel="stylesheet" href="/css/main.css?v=7.0.1">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.0.1">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.0.1">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.0.1">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.0.1" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.0.1',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="概况介绍TensorFlow基本概念，包括Tensor，shape，Type，Graph，Session和Operation。 什么是张量(Tensor)在TensorFlow中，所有的运算都与张量有关。一个张量(Tensor)就是可以表示任何数据类型的一个向量(vector)或者矩阵(matrix)。张量中值的类型(Type)和形状(shape)是明确的，所谓形状，指的是矩阵的维数。   张量可">
+<meta name="keywords" content="TensorFlow,machine learning">
+<meta property="og:type" content="article">
+<meta property="og:title" content="TensorFlow基本概念——How it work?">
+<meta property="og:url" content="http://www.hefvcjm.com/2019/10/01/tensorflow_basic_how_it_work/index.html">
+<meta property="og:site_name" content="hefvcjm">
+<meta property="og:description" content="概况介绍TensorFlow基本概念，包括Tensor，shape，Type，Graph，Session和Operation。 什么是张量(Tensor)在TensorFlow中，所有的运算都与张量有关。一个张量(Tensor)就是可以表示任何数据类型的一个向量(vector)或者矩阵(matrix)。张量中值的类型(Type)和形状(shape)是明确的，所谓形状，指的是矩阵的维数。   张量可">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="http://www.hefvcjm.com/2019/10/01/tensorflow_basic_how_it_work/3d_matrix_view.png">
+<meta property="og:image" content="http://www.hefvcjm.com/2019/10/01/tensorflow_basic_how_it_work/output_tensor_view.png">
+<meta property="og:image" content="http://www.hefvcjm.com/2019/10/01/tensorflow_basic_how_it_work/tensorflow_graph_example.png">
+<meta property="og:updated_time" content="2021-03-07T18:42:34.521Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="TensorFlow基本概念——How it work?">
+<meta name="twitter:description" content="概况介绍TensorFlow基本概念，包括Tensor，shape，Type，Graph，Session和Operation。 什么是张量(Tensor)在TensorFlow中，所有的运算都与张量有关。一个张量(Tensor)就是可以表示任何数据类型的一个向量(vector)或者矩阵(matrix)。张量中值的类型(Type)和形状(shape)是明确的，所谓形状，指的是矩阵的维数。   张量可">
+<meta name="twitter:image" content="http://www.hefvcjm.com/2019/10/01/tensorflow_basic_how_it_work/3d_matrix_view.png">
+
+
+
+
+
+
+  <link rel="canonical" href="http://www.hefvcjm.com/2019/10/01/tensorflow_basic_how_it_work/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>TensorFlow基本概念——How it work? | hefvcjm</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript><!-- hexo-inject:begin --><!-- hexo-inject:end -->
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">hefvcjm</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+    
+      
+    
+
+    
+      
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+
+    
+    
+    
+      
+    
+
+    
+      
+    
+
+    <a href="/about/" rel="section"><i class="menu-item-icon fa fa-fw fa-user"></i> <br>关于</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+    
+      
+    
+
+    
+      
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档<span class="badge">17</span></a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+
+    
+    
+    
+      
+    
+
+    
+      
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>分类<span class="badge">7</span></a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+
+    
+    
+    
+      
+    
+
+    
+      
+    
+
+    <a href="/tags/" rel="section"><i class="menu-item-icon fa fa-fw fa-tags"></i> <br>标签<span class="badge">23</span></a>
+
+  </li>
+
+      
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br>搜索</a>
+        </li>
+      
+    </ul>
+  
+
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off" placeholder="搜索..." spellcheck="false" type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+            
+
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.hefvcjm.com/2019/10/01/tensorflow_basic_how_it_work/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Mike John">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/header.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="hefvcjm">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">TensorFlow基本概念——How it work?
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2019-10-01 23:24:39" itemprop="dateCreated datePublished" datetime="2019-10-01T23:24:39+08:00">2019-10-01</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2021-03-08 02:42:34" itemprop="dateModified" datetime="2021-03-08T02:42:34+08:00">2021-03-08</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/machine-learning/" itemprop="url" rel="index"><span itemprop="name">machine learning</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h1 id="概况"><a href="#概况" class="headerlink" title="概况"></a>概况</h1><p>介绍TensorFlow基本概念，包括<code>Tensor</code>，<code>shape</code>，<code>Type</code>，<code>Graph</code>，<code>Session</code>和<code>Operation</code>。</p>
+<h1 id="什么是张量-Tensor"><a href="#什么是张量-Tensor" class="headerlink" title="什么是张量(Tensor)"></a>什么是张量(Tensor)</h1><p>在TensorFlow中，所有的运算都与张量有关。一个<code>张量(Tensor)</code>就是可以表示任何数据类型的一个向量(vector)或者矩阵(matrix)。张量中值的<code>类型(Type)</code>和<code>形状(shape)</code>是明确的，所谓形状，指的是矩阵的维数。  </p>
+<p>张量可以从输入或者运算结果得到。在TensorFlow中，任何<code>操作(operation)</code>都是在<code>图(Graph)</code>中进行的，图就是一个以此连接的操作节点和边的集合，每一个操作称为<code>op节点(op nade)</code>，并且它们相互连接在一起。图概括了节点和边，就像画布概括了里面画的形状一样。然而，在图里面是不显示值的，只是展示了节点和边的连接方式。而所谓边，其实就是一个张量，用这个张量的数据去填充后续的操作。</p>
+<p>在机器学习中，模型输入的是特征向量(feature vectors)。一个特征向量可以是任何数据类型，特征向量也通常是张量的首次填充的值。这些值通过张量将<code>流(flow)</code>进op节点，同时，节点的操作结果也将创建一个新的张量，流到下一个op节点去。在这里的所有操作都可以在图中可视化。</p>
+<h1 id="张量的表示"><a href="#张量的表示" class="headerlink" title="张量的表示"></a>张量的表示</h1><p>在TensorFlow中，张量就是n维特征向量的集合。比如，我们有一个2×3的矩阵，在TensorFlow中表示该矩阵为：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[[<span class="number">1</span> <span class="number">2</span> <span class="number">3</span>]</span><br><span class="line"> [<span class="number">4</span> <span class="number">5</span> <span class="number">6</span>]]</span><br></pre></td></tr></table></figure>
+
+<p>我们创建一个3维的矩阵，直观地看如下所示<br><img src="/2019/10/01/tensorflow_basic_how_it_work/3d_matrix_view.png" alt="可视化3维矩阵"><br>在TensorFlow中可以表示为</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">[[[<span class="number">1</span> <span class="number">2</span>]</span><br><span class="line">  [<span class="number">3</span> <span class="number">4</span>]]</span><br><span class="line"></span><br><span class="line"> [[<span class="number">5</span> <span class="number">6</span>]</span><br><span class="line">  [<span class="number">7</span> <span class="number">8</span>]]]</span><br></pre></td></tr></table></figure>
+
+<p><strong>注意：</strong>一个张量表示一个标量或者更高维的矩阵，更高维的矩阵就是比较难直观可视化罢了。</p>
+<h1 id="张量的种类"><a href="#张量的种类" class="headerlink" title="张量的种类"></a>张量的种类</h1><p>在TensorFlow中，所有计算都是通过一个或多个张量进行的。一个张量包括三个属性：</p>
+<ul>
+<li>唯一标示(name)</li>
+<li>维度(shape)</li>
+<li>数据类型(dtype)</li>
+</ul>
+<p>在TensorFlow中执行的每一个操作都与张量有关。你可以创建的张量主要有4种类型：</p>
+<ul>
+<li>tf.Variable</li>
+<li>tf.constant</li>
+<li>tf.placeholder</li>
+<li>tf.SpareTensor</li>
+</ul>
+<h1 id="常亮-constants"><a href="#常亮-constants" class="headerlink" title="常亮(constants)"></a>常亮(constants)</h1><p><strong>注意：</strong>后面默认代码已经导入TensorFlow，即开头包含<code>import tensorflow as tf</code><br>可以用tf.constant()来创建一个张量</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">tf.constant(value, dtype, name=<span class="string">""</span>)</span><br></pre></td></tr></table></figure>
+
+<p>参数分别是：<br><code>value</code>: 定义张量的值，可选项<br><code>dtype</code>: 定义数据类型，可以是<br>&emsp;&emsp;<code>tf.string</code>: 字符型<br>&emsp;&emsp;<code>tf.float32</code>: 浮点型<br>&emsp;&emsp;<code>tf.int16</code>: 整型<br><code>name</code>: 张量的名称，可选项。默认为<code>Const_1:0</code>  </p>
+<p>创建0维张量:</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">r1 = tf.constant(<span class="number">1</span>, tf.int16) </span><br><span class="line">print(r1)</span><br><span class="line"><span class="comment">#output：</span></span><br><span class="line"><span class="comment">#Tensor("Const:0", shape=(), dtype=int16)</span></span><br></pre></td></tr></table></figure>
+
+<p><img src="/2019/10/01/tensorflow_basic_how_it_work/output_tensor_view.png" alt="输出张量说明"></p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">r2 = tf.constant(<span class="number">1</span>, tf.int16, name = <span class="string">"my_scalar"</span>) </span><br><span class="line">print(r2)</span><br><span class="line"><span class="comment">#output：</span></span><br><span class="line"><span class="comment">#Tensor("myscalar:0", shape=(), dtype=int16)</span></span><br></pre></td></tr></table></figure>
+
+<p>创建1维张量:</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">r1_vector = tf.constant([<span class="number">1</span>,<span class="number">3</span>,<span class="number">5</span>], tf.int16)</span><br><span class="line">print(r1_vector)</span><br><span class="line"><span class="comment">#output:</span></span><br><span class="line"><span class="comment">#Tensor("myscalar:0", shape=(), dtype=int16)</span></span><br></pre></td></tr></table></figure>
+
+<p>可以看到输出形状只包含了一列。<br>我们可以创建2维张量如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">r2_matrix = tf.constant([ [<span class="number">1</span>, <span class="number">2</span>],</span><br><span class="line">                          [<span class="number">3</span>, <span class="number">4</span>] ],tf.int16)</span><br><span class="line">print(r2_matrix)</span><br><span class="line"><span class="comment">#output:</span></span><br><span class="line"><span class="comment">#Tensor("Const_2:0", shape=(2, 2), dtype=int16)</span></span><br></pre></td></tr></table></figure>
+
+<p>创建3维张量如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">r3_matrix = tf.constant([ [[<span class="number">1</span>, <span class="number">2</span>],</span><br><span class="line">                           [<span class="number">3</span>, <span class="number">4</span>], </span><br><span class="line">                           [<span class="number">5</span>, <span class="number">6</span>]] ], tf.int16)</span><br><span class="line">print(r3_matrix)	</span><br><span class="line"><span class="comment">#output:</span></span><br><span class="line"><span class="comment">#Tensor("Const_3:0", shape=(1, 3, 2), dtype=int16)</span></span><br></pre></td></tr></table></figure>
+
+<h1 id="张量的形状-shape"><a href="#张量的形状-shape" class="headerlink" title="张量的形状(shape)"></a>张量的形状(shape)</h1><p>在你打印张量的时候，TensorFlow会根据你的输入判断出一个形状(shape)。你可以利用张量的形状属性获取张量的形状。如下</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">m_shape = tf.constant([ [<span class="number">10</span>, <span class="number">11</span>],</span><br><span class="line">                        [<span class="number">12</span>, <span class="number">13</span>],</span><br><span class="line">                        [<span class="number">14</span>, <span class="number">15</span>] ]                      </span><br><span class="line">                     ) </span><br><span class="line">m_shape.shape</span><br><span class="line"><span class="comment">#output:</span></span><br><span class="line"><span class="comment">#TensorShape([Dimension(3), Dimension(2)])</span></span><br></pre></td></tr></table></figure>
+
+<p>TensorFlow提供了快速创建元素为0或者1的多维张量。比如</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">print(tf.zeros([<span class="number">2</span>, <span class="number">3</span>]))</span><br><span class="line"><span class="comment">#Tensor("zeros_1:0", shape=(2, 3), dtype=float32)</span></span><br><span class="line">print(tf.ones([<span class="number">2</span>, <span class="number">3</span>]))</span><br><span class="line"><span class="comment">#Tensor("ones:0", shape=(2, 3), dtype=float32)</span></span><br></pre></td></tr></table></figure>
+
+<h1 id="张量的数据类型"><a href="#张量的数据类型" class="headerlink" title="张量的数据类型"></a>张量的数据类型</h1><p>接下来讲的是张量的第二个属性——数据类型。一个张量只能有一种数据类型，可以利用下面的方式查看张量的数据类型：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">t1 = tf.zeros(<span class="number">10</span>)</span><br><span class="line">print(t1.dtype)</span><br><span class="line"><span class="comment">#output</span></span><br><span class="line"><span class="comment">#&lt;dtype: 'float32'&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>有时候我们想改变张量的数据类型，我们可以用<code>tf.cast</code>方法进行类型转换。比如</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">type_float = tf.constant(<span class="number">3.123456789</span>, tf.float32)</span><br><span class="line">type_int = tf.cast(type_float, dtype=tf.int32)</span><br><span class="line">print(type_float.dtype)</span><br><span class="line"><span class="comment">#output:</span></span><br><span class="line"><span class="comment">#&lt;dtype: 'float32'&gt;</span></span><br><span class="line">print(type_int.dtype)</span><br><span class="line"><span class="comment">#output:</span></span><br><span class="line"><span class="comment">#&lt;dtype: 'int32'&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>如果我们在创建张量时没有指定数据类型，TensorFlow将为我们自动选择数据类型。</p>
+<h1 id="创建操作op"><a href="#创建操作op" class="headerlink" title="创建操作op"></a>创建操作op</h1><p>TensorFlow包含了所有基本运算操作。我们先以简单的开始，我们演示一下利用TensorFlow提供的方法计算一个数的平方根。如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">x = tf.constant([<span class="number">2.0</span>], dtype=tf.float32)</span><br><span class="line">print(tf.sqrt(x))</span><br><span class="line"><span class="comment">#output:</span></span><br><span class="line"><span class="comment">#Tensor("Sqrt:0", shape=(1,), dtype=float32)</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>注意：</strong>输出返回的是一个张量对象，而不是根号2的结果。这里仅仅是将定义的一个张量打印出来，而实际上还没有进行运算。在TensorFlow中如何执行运算后面将介绍到。  </p>
+<p>以下是TensorFlow中常见的操作。</p>
+<ul>
+<li><code>tf.add(a, b)</code>加法</li>
+<li><code>tf.substract(a, b)</code>减法</li>
+<li><code>tf.multiply(a, b)</code>乘法</li>
+<li><code>tf.div(a, b)</code>除法</li>
+<li><code>tf.pow(a, b)</code>幂</li>
+<li><code>tf.exp(a)</code>自然指数</li>
+<li><code>tf.sqrt(a)</code>平方根</li>
+</ul>
+<p>例如(add，multiply)</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">tensor_a = tf.constant([[<span class="number">1</span>,<span class="number">2</span>]], dtype = tf.int32)</span><br><span class="line">tensor_b = tf.constant([[<span class="number">3</span>, <span class="number">4</span>]], dtype = tf.int32)</span><br><span class="line">tensor_add = tf.add(tensor_a, tensor_b)</span><br><span class="line">print(tensor_add)</span><br><span class="line"><span class="comment">#output</span></span><br><span class="line"><span class="comment">#Tensor("Add:0", shape=(1, 2), dtype=int32)</span></span><br><span class="line">tensor_multiply = tf.multiply(tensor_a, tensor_b)</span><br><span class="line">print(tensor_multiply)</span><br><span class="line"><span class="comment">#output</span></span><br><span class="line"><span class="comment">#Tensor("Mul:0", shape=(1, 2), dtype=int32)</span></span><br></pre></td></tr></table></figure>
+
+<h1 id="变量-Variables"><a href="#变量-Variables" class="headerlink" title="变量(Variables)"></a>变量(Variables)</h1><p>前面我们已经知道如何创建张量常量了，但是有时候需要改变一个张量的值，这时候我们就需要张量变量(Variable)了。它将表示一个经常变化的节点。<br>可以利用<code>tf.Variable()</code>或者<code>tf.get_variable()</code>创建一个张量变量</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">tf.Variable(initial_value, name=<span class="string">""</span>)</span><br></pre></td></tr></table></figure>
+
+<p>参数分别是：<br><code>initial_value</code>: 变量的初始值<br><code>name</code>: 变量的名称，可选  </p>
+<p>例如</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">print(tf.Variable(<span class="number">3</span>))</span><br><span class="line"><span class="comment">#output:</span></span><br><span class="line"><span class="comment">#&lt;tf.Variable 'Variable:0' shape=() dtype=int32_ref&gt;</span></span><br></pre></td></tr></table></figure>
+
+<h1 id="占位符-placeholder"><a href="#占位符-placeholder" class="headerlink" title="占位符(placeholder)"></a>占位符(placeholder)</h1><p>在TensorFlow中，占位符就是为了“填”张量的。在应用placeholder的时候，我们需要用到<code>feed_dict</code>方法，这样才会在Session中把placeholder给“填（喂）”上数据。下面我们用<code>tf.placeholder</code>我创建占位符张量，后面我们将学习如何给占位符“喂数据”。<br>语法如下</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">tf.placeholder(dtype, shape=<span class="literal">None</span>, name=<span class="literal">None</span>)</span><br></pre></td></tr></table></figure>
+
+<p>参数分别是<br><code>dtype</code>: 张量的数据类型<br><code>shape</code>: 张量的形状，可选，默认将由喂的数据决定<br><code>name</code>: 占位符名称，可选<br>例如</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">data_placeholder_a = tf.placeholder(tf.float32, name=<span class="string">"data_placeholder_a"</span>)</span><br><span class="line">print(data_placeholder_a)</span><br><span class="line"><span class="comment">#output:</span></span><br><span class="line"><span class="comment">#Tensor("data_placeholder_a:0", dtype=float32)</span></span><br></pre></td></tr></table></figure>
+
+<h1 id="会话-Session"><a href="#会话-Session" class="headerlink" title="会话(Session)"></a>会话(Session)</h1><p>TensorFlow包括了以下3大主要部件：</p>
+<ul>
+<li>图(Graph)</li>
+<li>张量(Tensor)</li>
+<li>会话(Session)</li>
+</ul>
+<p><strong><code>图：</code></strong>图是TensorFlow的基础。所有数学操作(ops)都在图中执行，我们可以想象图就是每一个操作执行所在的工程，每一个节点就代表这些操作，它们可以输入张量或者创建张量。<br><strong><code>张量：</code></strong>一个张量表示的时候操作间流动的数据。创建和流动一个张量如前文所示。<br><strong><code>会话：</code></strong>会话是用来执行图中的操作的。我们需要打开一个会话来对图中的操作进行喂数据，然后在会话里面运行一个操作我们才可以得到正真的输出结果。  </p>
+<p>图和会话是相互独立的，我们可以使用后续的计算或者操作来运行一个会话或者获取数值。<br>下面我们举个例子完成下面的内容：</p>
+<ul>
+<li>创建两个张量</li>
+<li>创建一个操作</li>
+<li>打开一个会话</li>
+<li>打印结果</li>
+</ul>
+<p><strong>步骤1：</strong>分别创建两个张量x和y</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">x = tf.constant([<span class="number">2</span>])</span><br><span class="line">y = tf.constant([<span class="number">4</span>])</span><br></pre></td></tr></table></figure>
+
+<p><strong>步骤2：</strong>创建一个x乘y的操作节点</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">multiply = tf.multiply(x, y)</span><br></pre></td></tr></table></figure>
+
+<p><strong>步骤3：</strong>打开会话执行操作，完成后关闭会话</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">sess = tf.Session()</span><br><span class="line">result = sess.run(multiply)</span><br><span class="line">print(result)</span><br><span class="line">sess.close()</span><br><span class="line"><span class="comment">#output:</span></span><br><span class="line"><span class="comment">#[8]</span></span><br></pre></td></tr></table></figure>
+
+<p>步骤3也可以这么写，这样的话会话在执行完成后会自动关闭</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">with</span> tf.Session() <span class="keyword">as</span> sess:</span><br><span class="line">  result = multiply.eval()</span><br><span class="line">  print(result)</span><br><span class="line"><span class="comment">#output:</span></span><br><span class="line"><span class="comment">#[8]</span></span><br></pre></td></tr></table></figure>
+
+<p>在会话的上下文中，我们可以用<code>eval()</code>方法来执行操作，它跟<code>run()</code>是等效的，这样的话代码的可读性会更强一些。<br>我们可以打开一个会话查看前文我们创建的张量常量</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">sess = tf.Session()</span><br><span class="line">print(sess.run(r1))</span><br><span class="line">print(sess.run(r2_matrix))</span><br><span class="line">sess.close()</span><br><span class="line"><span class="comment">#output:</span></span><br><span class="line"><span class="comment">#1</span></span><br><span class="line"><span class="comment">#[[1 2]</span></span><br><span class="line"><span class="comment"># [3 4]]</span></span><br></pre></td></tr></table></figure>
+
+<p>对于张量变量来说，它默认是空的，即使我们已经创建了它，我们需要对变量进行初始化后才可以使用，我们可以用<code>tf.global_variables_initializer()</code>来一下子初始化全部变量，或者使用<code>tf.variables_initializer()</code>来初始化指定的变量。<br>这里我们举例对变量进行初始化，需要注意的是初始化操作也需要在会话中执行。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">var_a = tf.Variable([<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>])</span><br><span class="line">sess.run(tf.global_variables_initializer())</span><br><span class="line">print(sess.run(var_a))</span><br><span class="line">sess.close()</span><br><span class="line"><span class="comment">#output:</span></span><br><span class="line"><span class="comment">#[1 2 3]</span></span><br></pre></td></tr></table></figure>
+
+<p>我们要使用占位符的话，执行操作的时候需要对其“喂数据”。例如，下面我们执行占位符所代表数据的平方。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line">power_a = tf.pow(data_placeholder_a, <span class="number">2</span>)</span><br><span class="line"><span class="keyword">with</span> tf.Session() <span class="keyword">as</span> sess:  </span><br><span class="line">  data = np.random.rand(<span class="number">1</span>, <span class="number">10</span>)  </span><br><span class="line">  print(sess.run(power_a, feed_dict=&#123;data_placeholder_a: data&#125;))</span><br><span class="line"><span class="comment">#output:</span></span><br><span class="line"><span class="comment">#[[8.7529367e-01 5.7319117e-01 1.8739136e-02 8.0524582e-01 8.9399856e-01</span></span><br><span class="line"><span class="comment">#  5.5646729e-02 2.9369484e-04 3.0354759e-01 7.3121570e-02 1.2742124e-01]]</span></span><br></pre></td></tr></table></figure>
+
+<h1 id="图-Graph"><a href="#图-Graph" class="headerlink" title="图(Graph)"></a>图(Graph)</h1><p>TensorFlow中所有操作都表示为数据流的方式，图是一种可视化操作如何关联的便捷方法。在图中显示节点(node)和表(edge)，节点就是某一种操作。<br>在图里面将操作和操作所需要的数据进行连接，但是图本身不会展示操作的输出结果，而仅仅是将他们可视化。  </p>
+<p>比如说， 假如我们要计算下面这个函数：<br>$$f(x,z)=xz+x^2+z+5$$<br>TensorFlow将创建一个图来执行它，这个就像下图所示那样：<br><img src="/2019/10/01/tensorflow_basic_how_it_work/tensorflow_graph_example.png" alt="Graph示例"><br>在图中可以很清晰的看见张量从起始到终点所经过的路径。实现代码如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">x = tf.Variable([<span class="number">15</span>], dtype=tf.int32)</span><br><span class="line">z = tf.Variable([<span class="number">6</span>], dtype=tf.int32)</span><br><span class="line">c = tf.constant([<span class="number">5</span>], name=<span class="string">"constant"</span>)</span><br><span class="line">square = tf.constant([<span class="number">2</span>], name=<span class="string">"square"</span>)</span><br><span class="line">f = tf.multiply(x, z) + tf.pow(x, square) + z + c</span><br><span class="line">init = tf.global_variables_initializer()</span><br><span class="line"><span class="keyword">with</span> tf.Session() <span class="keyword">as</span> sess:</span><br><span class="line">  init.run()</span><br><span class="line">  result = f.eval()</span><br><span class="line">  print(result)</span><br><span class="line"><span class="comment">#output:</span></span><br><span class="line"><span class="comment">#[326]</span></span><br></pre></td></tr></table></figure>
+
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>TensorFlow大致工作如下：</p>
+<ul>
+<li>图：包含着操作和张量的计算的环境（上下文）</li>
+<li>张量：表示图中流动的数据，也就是图中的边</li>
+<li>会话：所有操作的最终执行者</li>
+</ul>
+<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><ul>
+<li><a href="https://www.guru99.com/tensor-tensorflow.html" target="_blank" rel="noopener">TensorFlow Basics: Tensor, Shape, Type, Graph, Sessions &amp; Operators</a></li>
+</ul>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/TensorFlow/" rel="tag"># TensorFlow</a>
+          
+            <a href="/tags/machine-learning/" rel="tag"># machine learning</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2019/09/25/ray_caster_visual_laser/" rel="next" title="射线投射(Ray Cast)生成虚拟激光数据">
+                <i class="fa fa-chevron-left"></i> 射线投射(Ray Cast)生成虚拟激光数据
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2019/10/03/tensorflow_basic/" rel="prev" title="TensorFlow中的constant，Variable，placeholder">
+                TensorFlow中的constant，Variable，placeholder <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image" src="/images/header.jpg" alt="Mike John">
+            
+              <p class="site-author-name" itemprop="name">Mike John</p>
+              <div class="site-description motion-element" itemprop="description"></div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">17</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">7</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  
+                    
+                      <a href="/tags/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">23</span>
+                    <span class="site-state-item-name">标签</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+            <div class="links-of-author motion-element">
+              
+                <span class="links-of-author-item">
+                  
+                  
+                    
+                  
+                  
+                    
+                  
+                  <a href="mailto:hef1995@qq.com" title="E-Mail &rarr; mailto:hef1995@qq.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+                </span>
+              
+            </div>
+          
+
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#概况"><span class="nav-text">概况</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#什么是张量-Tensor"><span class="nav-text">什么是张量(Tensor)</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#张量的表示"><span class="nav-text">张量的表示</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#张量的种类"><span class="nav-text">张量的种类</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#常亮-constants"><span class="nav-text">常亮(constants)</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#张量的形状-shape"><span class="nav-text">张量的形状(shape)</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#张量的数据类型"><span class="nav-text">张量的数据类型</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#创建操作op"><span class="nav-text">创建操作op</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#变量-Variables"><span class="nav-text">变量(Variables)</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#占位符-placeholder"><span class="nav-text">占位符(placeholder)</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#会话-Session"><span class="nav-text">会话(Session)</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#图-Graph"><span class="nav-text">图(Graph)</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#总结"><span class="nav-text">总结</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#参考"><span class="nav-text">参考</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2021</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Mike John</span>
+
+  
+
+  
+</div>
+
+
+
+
+
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+          <span id="scrollpercent"><span>0</span>%</span>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+
+  
+
+
+  <script src="/js/src/utils.js?v=7.0.1"></script>
+
+  <script src="/js/src/motion.js?v=7.0.1"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/src/affix.js?v=7.0.1"></script>
+
+  <script src="/js/src/schemes/pisces.js?v=7.0.1"></script>
+
+
+
+
+  
+  <script src="/js/src/scrollspy.js?v=7.0.1"></script>
+<script src="/js/src/post-details.js?v=7.0.1"></script>
+
+
+
+  
+
+
+  <script src="/js/src/next-boot.js?v=7.0.1"></script>
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+
+
+  
+  <script>
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url).replace(/\/{2,}/g, '/');
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x"></i></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x"></i></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+  
+
+  
+  
+
+  
+    
+      <script type="text/x-mathjax-config">
+  
+
+  MathJax.Hub.Config({
+    tex2jax: {
+      inlineMath: [ ['$', '$'], ['\\(', '\\)'] ],
+      processEscapes: true,
+      skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    },
+    TeX: {
+      
+        extensions: ["AMSmath.js", "AMSsymbols.js", "autobold.js"],
+      
+      equationNumbers: {
+        autoNumber: 'AMS'
+      }
+    }
+  });
+  MathJax.Hub.Register.StartupHook('TeX Jax Ready', function() {
+    MathJax.InputJax.TeX.prefilterHooks.Add(function(data) {
+      if (data.display) {
+        var next = data.script.nextSibling;
+        while (next && next.nodeName.toLowerCase() === '#text') { next = next.nextSibling }
+        if (next && next.nodeName.toLowerCase() === 'br') { next.parentNode.removeChild(next) }
+      }
+    });
+  });
+</script>
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for (i = 0; i < all.length; i += 1) {
+      document.getElementById(all[i].inputID + '-Frame').parentNode.className += ' has-jax';
+    }
+  });
+</script>
+
+<script type="text/javascript">
+$(document).ready(function(){
+  $("code").map(function(){
+    match = /^\$(.*)\$$/.exec($(this).html());
+    if (match) {
+      $(this).replaceWith("<span class=hpl_mathjax_inline>" + $(this).html() + "</span>");
+      MathJax.Hub.Queue(["Typeset",MathJax.Hub,$(this).get(0)]);
+    }
+    match = /^\$\$/.exec($(this).html());
+    if (match) {
+      $(this).replaceWith("<span class=hpl_mathjax_inline>" + $(this).html() + "</span>");
+      MathJax.Hub.Queue(["Typeset",MathJax.Hub,$(this).get(0)]);
+    }
+    match = /^\\begin/.exec($(this).html());
+    if (match) {
+      $(this).replaceWith("<span class=hpl_mathjax_inline>" + $(this).html() + "</span>");
+      MathJax.Hub.Queue(["Typeset",MathJax.Hub,$(this).get(0)]);
+    }
+  });
+});
+</script>
+
+<script src="//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-MML-AM_HTMLorMML"></script><!-- hexo-inject:begin --><!-- Begin: Injected MathJax -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({"tex2jax":{"inlineMath":[["$","$"],["\\(","\\)"]],"skipTags":["script","noscript","style","textarea","pre","code"],"processEscapes":true},"TeX":{"equationNumbers":{"autoNumber":"AMS"}}});
+</script>
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i=0; i < all.length; i += 1) {
+      all[i].SourceElement().parentNode.className += ' has-jax';
+    }
+  });
+</script>
+
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js">
+</script>
+<!-- End: Injected MathJax -->
+<!-- hexo-inject:end -->
+
+    
+  
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

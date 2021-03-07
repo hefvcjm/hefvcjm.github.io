@@ -1,0 +1,1410 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next gemini use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2">
+
+<link rel="stylesheet" href="/css/main.css?v=7.0.1">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.0.1">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.0.1">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.0.1">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.0.1" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.0.1',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="概要本文主要从语言特性和原理上阐述Python中的继承。关于继承，主要涉及到的就是属性的读写以及函数的调用二义性问题，这里不论及关于底层的对象存储相关的原理（主要是我也不懂）。另外提到的原理只针对Python2.7，这里值得一提的是，测试用例是在Pyhon2.7.12上面编写和运行的。因为Python不同版本中存在一定差异，Python3中在继承上也做了一定的修改，但这些都不影响去理解Python">
+<meta name="keywords" content="Python,多继承,MRO">
+<meta property="og:type" content="article">
+<meta property="og:title" content="理解Python的继承">
+<meta property="og:url" content="http://www.hefvcjm.com/2020/09/15/python_mro_and_inherit/index.html">
+<meta property="og:site_name" content="hefvcjm">
+<meta property="og:description" content="概要本文主要从语言特性和原理上阐述Python中的继承。关于继承，主要涉及到的就是属性的读写以及函数的调用二义性问题，这里不论及关于底层的对象存储相关的原理（主要是我也不懂）。另外提到的原理只针对Python2.7，这里值得一提的是，测试用例是在Pyhon2.7.12上面编写和运行的。因为Python不同版本中存在一定差异，Python3中在继承上也做了一定的修改，但这些都不影响去理解Python">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="http://www.hefvcjm.com/2020/09/15/python_mro_and_inherit/c3mro.svg">
+<meta property="og:image" content="http://www.hefvcjm.com/2020/09/15/python_mro_and_inherit/example_1.svg">
+<meta property="og:updated_time" content="2021-03-07T17:51:41.410Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="理解Python的继承">
+<meta name="twitter:description" content="概要本文主要从语言特性和原理上阐述Python中的继承。关于继承，主要涉及到的就是属性的读写以及函数的调用二义性问题，这里不论及关于底层的对象存储相关的原理（主要是我也不懂）。另外提到的原理只针对Python2.7，这里值得一提的是，测试用例是在Pyhon2.7.12上面编写和运行的。因为Python不同版本中存在一定差异，Python3中在继承上也做了一定的修改，但这些都不影响去理解Python">
+<meta name="twitter:image" content="http://www.hefvcjm.com/2020/09/15/python_mro_and_inherit/c3mro.svg">
+
+
+
+
+
+
+  <link rel="canonical" href="http://www.hefvcjm.com/2020/09/15/python_mro_and_inherit/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>理解Python的继承 | hefvcjm</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript><!-- hexo-inject:begin --><!-- hexo-inject:end -->
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">hefvcjm</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+    
+      
+    
+
+    
+      
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+
+    
+    
+    
+      
+    
+
+    
+      
+    
+
+    <a href="/about/" rel="section"><i class="menu-item-icon fa fa-fw fa-user"></i> <br>关于</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+    
+      
+    
+
+    
+      
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档<span class="badge">17</span></a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+
+    
+    
+    
+      
+    
+
+    
+      
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>分类<span class="badge">7</span></a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+
+    
+    
+    
+      
+    
+
+    
+      
+    
+
+    <a href="/tags/" rel="section"><i class="menu-item-icon fa fa-fw fa-tags"></i> <br>标签<span class="badge">23</span></a>
+
+  </li>
+
+      
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br>搜索</a>
+        </li>
+      
+    </ul>
+  
+
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off" placeholder="搜索..." spellcheck="false" type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+            
+
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.hefvcjm.com/2020/09/15/python_mro_and_inherit/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Mike John">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/header.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="hefvcjm">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">理解Python的继承
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2020-09-15 23:24:42" itemprop="dateCreated datePublished" datetime="2020-09-15T23:24:42+08:00">2020-09-15</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2021-03-08 01:51:41" itemprop="dateModified" datetime="2021-03-08T01:51:41+08:00">2021-03-08</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Python/" itemprop="url" rel="index"><span itemprop="name">Python</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h1 id="概要"><a href="#概要" class="headerlink" title="概要"></a>概要</h1><p>本文主要从语言特性和原理上阐述Python中的继承。关于继承，主要涉及到的就是属性的读写以及函数的调用二义性问题，这里不论及关于底层的对象存储相关的原理（主要是我也不懂）。另外提到的原理只针对Python2.7，这里值得一提的是，测试用例是在Pyhon2.7.12上面编写和运行的。因为Python不同版本中存在一定差异，Python3中在继承上也做了一定的修改，但这些都不影响去理解Python中较为一般性的原理。当然，本文写的这些东西一个是方便对  Python继承有更深入的认识，另一方面是为了在开发一些框架或者稍微底层通用一点的库提供参考。在实际业务开发中最好就不用到这些了，及其容易入坑。  </p>
+<h1 id="新式类与古典类"><a href="#新式类与古典类" class="headerlink" title="新式类与古典类"></a><a href="https://docs.python.org/2/reference/datamodel.html#new-style-and-classic-classes" target="_blank" rel="noopener">新式类与古典类</a></h1><p>Python中有新式类和古典类之分，Python2.2前都是只有古典类，而在Python2.2及其以上的版本，都引进了新式类，在Python3前，新式类和古典类共同存在，而Python3之后则只保留了新式类。  </p>
+<p>新式类和古典类存在较大的差异，新式类提供了统一的对象模型，新式类和古典类有哪些差别或者新式类有哪些特征可以参考<a href="https://www.python.org/doc/newstyle/" target="_blank" rel="noopener">这里</a>。新式类和古典类在创建上区别就是，新式类需要继承自一个新式类或者直接继承<code>object</code>来创建，而古典类则不继承任何类或者继承其他古典类来创建。它们之间存在一个显著的差异就是，在古典类中，一个实例对象x的x.__class__和type(x)是不一样的（这里不考虑手动修改对象__class__属性的情况），例如下面的代码：  </p>
+<p>古典类：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">A</span>:</span> <span class="keyword">pass</span></span><br><span class="line">x = A()</span><br><span class="line"><span class="keyword">print</span> x.__class__</span><br><span class="line"><span class="keyword">print</span> type(x)</span><br><span class="line"><span class="comment"># 输出为：</span></span><br><span class="line"><span class="comment"># __main__.A</span></span><br><span class="line"><span class="comment"># &lt;type 'instance'&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>新式类：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">A</span><span class="params">(object)</span>:</span> <span class="keyword">pass</span></span><br><span class="line">x = A()</span><br><span class="line"><span class="keyword">print</span> x.__class__</span><br><span class="line"><span class="keyword">print</span> type(x)</span><br><span class="line"><span class="comment"># 输出为：</span></span><br><span class="line"><span class="comment"># &lt;class '__main__.A'&gt;</span></span><br><span class="line"><span class="comment"># &lt;class '__main__.A'&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>也就是说，古典类都是内置类型<code>instance</code>的实例，于是在古典类中，两个实例对象a和b之间，<code>type(a) == type(b)</code>总是为<code>True</code>。这些就是Python中古典类和新式类的一些差异，当然，更深层次的东西涉及到的就是两种不同的对象模型了。   </p>
+<h1 id="方法解析顺序MRO（Method-Resolution-Order）"><a href="#方法解析顺序MRO（Method-Resolution-Order）" class="headerlink" title="方法解析顺序MRO（Method Resolution Order）"></a>方法解析顺序MRO（Method Resolution Order）</h1><p>在Python中讲到继承，必然就会涉及到MRO。所谓MRO，简单说就是指在Python中对象调用函数的查找顺序，根据MRO，Python就可以准确调用到正确的函数而不发生歧义。上面提到的古典类与新式类中的MRO有所不同，古典类的MRO搜索是采用自左向右的深度优先方法。而新式类则是在古典类的基础上做了一点的修改和优化，采用的是C3 MRO搜索方法。下面简单介绍一下C3 MRO算法。  </p>
+<h2 id="C3-MRO算法"><a href="#C3-MRO算法" class="headerlink" title="C3 MRO算法"></a>C3 MRO算法</h2><p>首先定义一下用的的一些符号。<br>$C_1C_2…C_N$：表示类列表，等同于$[C_1, C_2, …, C_N]$；<br>对于上没的列表来说，有：<br>$$head=C_1$$<br>$$tail=C_2…C_N$$<br>$$C+(C_1C_2…C_N)=CC_1C_2…C_N$$<br>假设有一个类$C$集成自$B_1$，$B_2$，$…$，$B_N$，现在我们需要确定类$C$的MRO类列表(也就是类$C$的线性化)，可以根据以下步骤唯一确定。  </p>
+<p>记$L[C]$表示类$C$的线性化，同时又有$L[C]=L[C(B_1…B_N)]$，则 类$C$的线性化类列表，该列表由类$C$，类$C$各个父类线性化类列表的合并，以及类$C$的父类这三个部分组成。可以表示为<br>$$L[C]=L[C(B_1…B_N)]=C+merge(L[B_1], …, L[B_N], B_1…B_N)$$<br>特别的，有<br>$$L[object]=object$$<br>现在只需要确定$merge$如何进行就可以了，$merge$需要对$N+1$个列表进行操作得到一个新的列表。我们记这$N+1$个列表分别为$L_1=L[B_1]$，…，$L_N=L[B_N]$，$L_{N+1}=B_1…B_N$，同时记$head_i$为$L_i$的$head$，$tail_i$为$L_i$的$tail$。于是$merge$步骤伪代码为：<br><img src="/2020/09/15/python_mro_and_inherit/c3mro.svg" alt="C3 MRO伪代码"><br>上面的伪代码仅仅表示出了C3 MRO算法的思路，具体实现可能就不是最优的了。这算法描述起来就是，$merge$多个类列表的时候，从左到右的列表中，依次取出每个列表的$head$，如果该$head$不在其余所有列表的$tail$中，则取出该$head$，然后在每个列表中都删去该$head$类（存在的话其实都是响应列表的第一个元素），然后继续按前面步骤从第一个列表重新开始再取出一个，如果$head$在其它的$tail$中存在，则取下一个列表的$head$进行同样的步骤，直到可以满足条件取出一个为止。如果最后一个列表的$head$也无法满足，则$merge$操作失败，也就是说无法完成线性化。如果每一次都能提取出一个类，则最终提取出来object后终止，从而完成$merge$操作。<br>另外相对于单继承，有<br>$$L[C(B)]=C+merge(L[B],B)=C+L[B]$$ </p>
+<p>下面举个例子，有如下继承关系的类：<br><img src="/2020/09/15/python_mro_and_inherit/example_1.svg" alt="正常继承关系实例"><br>现在我们要算出类A的MRO，则根据上面所述的算法，有  </p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">L[O] = O</span><br><span class="line"></span><br><span class="line">L[D(O)] = D + merge(L[O], O) = DO</span><br><span class="line">L[E(O)] = E + merge(L[O], O) = EO</span><br><span class="line">L[F(O)] = F + merge(L[O], O) = FO</span><br><span class="line"></span><br><span class="line">L[B(DE)] = B + merge(L[D], L[E], DE)</span><br><span class="line">         = B + merge(DO, EO, DE)</span><br><span class="line">         = B + D + merge(O, EO, E)</span><br><span class="line">         = B + D + E + merge(O, O)</span><br><span class="line">         = BDEO</span><br><span class="line"></span><br><span class="line">L[C(DF)] = C + merge(L[D], L[F], DF)</span><br><span class="line">         = C + merge(DO, FO, DF)</span><br><span class="line">         = C + D + merge(O, FO, F)</span><br><span class="line">         = C + D + F + merge(O, O)</span><br><span class="line">         = BDFO</span><br><span class="line"></span><br><span class="line">L[A(BC)] = A + merge(L[B], L[C], BC)</span><br><span class="line">         = A + merge(BDEO, CDFO, BC)</span><br><span class="line">         = A + B + merge(DEO, CDFO, C)</span><br><span class="line">         = A + B + C + merge(DEO, DFO)</span><br><span class="line">         = A + B + C + D + merge(EO, FO)</span><br><span class="line">         = A + B + C + D + E + merge(O, FO)</span><br><span class="line">         = A + B + C + D + E + F + merge(O, O)</span><br><span class="line">         = ABCDEFO</span><br></pre></td></tr></table></figure>
+
+<p>从而得到类A的MRO类列表为ABCDEFO。下面再举一个C3 MRO算法执行失败的情况，也就是无法解析出一个MRO列表，或者说这种继承关系将会产生异常。<br>假如有X和Y继承自object，A继承自X和Y，B继承自Y和X，也就是继承顺序相反，而有C继承自A和B，则根据前面所述的算法，有</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">L[X] = XO</span><br><span class="line">L[Y] = YO</span><br><span class="line">L[A] = AXYO</span><br><span class="line">L[B] = BYXO</span><br><span class="line"></span><br><span class="line">L[C] = C + merge(L[A], L[B], AB)</span><br><span class="line">     = C + merge(AXYO, BYXO, AB)</span><br><span class="line">     = C + A + merge(XYO, BYXO, B)</span><br><span class="line">     = C + A + B + merge(XYO, YXO)</span><br></pre></td></tr></table></figure>
+
+<p>当上面执行到merge(XYO, YXO)时，第一个列表获取head为X，但是X在第二个列表的tail中存在，因此进而获取第二个列表的head为Y，但是Y在第一个列表的tail中存在，到此没有跟多列表执行下去了，因此算法终止，返回异常。因此这种继承关系是不太好的，实际上在Python中直接会抛出异常。  </p>
+<p>Python中可以利用类的<code>mro()</code>函数或者<code>__mro__</code>属性或取其MRO搜索列表。  </p>
+<p>上面的的例子中，用写成Python程序如下：  </p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 正常继承关系</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">D</span><span class="params">(object)</span>:</span> <span class="keyword">pass</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">E</span><span class="params">(object)</span>:</span> <span class="keyword">pass</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">F</span><span class="params">(object)</span>:</span> <span class="keyword">pass</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">B</span><span class="params">(D, E)</span>:</span> <span class="keyword">pass</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">C</span><span class="params">(D, F)</span>:</span> <span class="keyword">pass</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">A</span><span class="params">(B, C)</span>:</span> <span class="keyword">pass</span></span><br><span class="line">A.mro()</span><br><span class="line"><span class="comment"># [__main__.A,</span></span><br><span class="line"><span class="comment">#  __main__.B,</span></span><br><span class="line"><span class="comment">#  __main__.C,</span></span><br><span class="line"><span class="comment">#  __main__.D,</span></span><br><span class="line"><span class="comment">#  __main__.E,</span></span><br><span class="line"><span class="comment">#  __main__.F,</span></span><br><span class="line"><span class="comment">#  object]</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 异常继承关系</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">X</span><span class="params">(object)</span>:</span> <span class="keyword">pass</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Y</span><span class="params">(object)</span>:</span> <span class="keyword">pass</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">A</span><span class="params">(X, Y)</span>:</span> <span class="keyword">pass</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">B</span><span class="params">(Y, X)</span>:</span> <span class="keyword">pass</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">C</span><span class="params">(A, B)</span>:</span> <span class="keyword">pass</span></span><br><span class="line"><span class="comment"># TypeErrorTraceback (most recent call last)</span></span><br><span class="line"><span class="comment">#  in ()</span></span><br><span class="line"><span class="comment">#       3 class A(X, Y): pass</span></span><br><span class="line"><span class="comment">#       4 class B(Y, X): pass</span></span><br><span class="line"><span class="comment"># ----&gt; 5 class C(A, B): pass</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># TypeError: Error when calling the metaclass bases</span></span><br><span class="line"><span class="comment">#     Cannot create a consistent method resolution</span></span><br><span class="line"><span class="comment"># order (MRO) for bases Y, X</span></span><br></pre></td></tr></table></figure>
+
+<h1 id="多继承与super"><a href="#多继承与super" class="headerlink" title="多继承与super"></a>多继承与super</h1><p>利用C3 MRO算法，就可以确定Python中继承关系的函数调用搜索顺序了。只要一个继承关系中能够确定MRO，那么这个继承关系就是合法的。Python支持多继承，也就是一个类可以同时继承自多个其他类。讲到多继承，那么就会讲到super。猛戳<a href="https://docs.python.org/2/library/functions.html#super" target="_blank" rel="noopener">这里</a>可以查看官网文档。下面，来了解下super是啥，能干啥用。  </p>
+<h2 id="什么是super"><a href="#什么是super" class="headerlink" title="什么是super"></a>什么是super</h2><p>对super做一下类型检查，可以看到super是一个类类型（super类型），实例化后可以得到一个super对象。如下所示：  </p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">print</span> type(super)</span><br><span class="line"><span class="keyword">print</span> super(object)</span><br><span class="line"><span class="keyword">print</span> type(super(object))</span><br><span class="line"><span class="comment"># &lt;type 'type'&gt;</span></span><br><span class="line"><span class="comment"># &lt;super: &lt;class 'object'&gt;, NULL&gt;</span></span><br><span class="line"><span class="comment"># &lt;type 'super'&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>从<a href="https://docs.python.org/2/library/functions.html#super" target="_blank" rel="noopener">官方文档</a>可以获悉，实例化super之后得到的是一个代理对象，所谓代理对象，就是指其代理某个对象执行一些操作，这些操作等同于被代理的对象自己亲自执行的效果。利用super提供的代理对象，可以方便地调用一个类的父类或者兄弟类的函数。此外，super仅仅提供了这样的一种机制，不一定要在类里面实例化super。例如：  </p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 调用父类函数</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Parent</span><span class="params">(object)</span>:</span></span><br><span class="line"><span class="meta">    @staticmethod</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">test</span><span class="params">()</span>:</span></span><br><span class="line">        <span class="keyword">print</span> <span class="string">"this is parent"</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Child</span><span class="params">(Parent)</span>:</span></span><br><span class="line"><span class="meta">    @staticmethod</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">test</span><span class="params">()</span>:</span></span><br><span class="line">        <span class="keyword">print</span> <span class="string">"this is child"</span></span><br><span class="line">Child.test()</span><br><span class="line">super(Child, Child).test()</span><br><span class="line"><span class="comment"># this is child</span></span><br><span class="line"><span class="comment"># this is parent</span></span><br></pre></td></tr></table></figure>
+
+<p>可以看到，利用super得到的代理对象准确的调用了父类函数。因此，得了解super是如何准确调用父类函数的，两个参数有分别代表什么意思？  </p>
+<h2 id="理解super的参数与调用规则"><a href="#理解super的参数与调用规则" class="headerlink" title="理解super的参数与调用规则"></a>理解super的参数与调用规则</h2><p>从<a href="https://docs.python.org/2/library/functions.html#super" target="_blank" rel="noopener">官网说明文档</a>可以知道，super的两个参数是有要求的，必须满足条件：<strong>第二参数必须是第一参数自己或者其派生类的类类型或者实例对象</strong>，可以这么记一下：super(parent, child)。其中第二参数就是super实例化后代理的对象，也就是代理child执行操作。而第一个参数就是确定了其函数调用的界线。具体的调用规则可以这么理解，假设：  </p>
+<ul>
+<li>parent的MRO为[A, B, C, D, E, …]</li>
+<li>child（如果为实例则type(child)）的MRO为[C, D, E, …]  </li>
+</ul>
+<p>那么，super(parent, child)调用函数的MRO为[D, E, …]。具体的就是，<strong>super是child的代理，其函数查找MRO为child（如果是实例指的就是其类型）的MRO中parent后面的部分。</strong> 这就是super调用函数的规则。例如：  </p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">A</span><span class="params">(object)</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">test</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="keyword">print</span> self.__class__</span><br><span class="line">        <span class="keyword">print</span> <span class="string">"this is A"</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">B</span><span class="params">(A)</span>:</span></span><br><span class="line">    a = <span class="number">1</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">test</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="keyword">print</span> self.__class__</span><br><span class="line">        <span class="keyword">print</span> <span class="string">"this is B"</span></span><br><span class="line">b = B()</span><br><span class="line">super(B, b).test()</span><br><span class="line"><span class="comment">#</span></span><br><span class="line"><span class="comment"># &lt;class '__main__.B'&gt;</span></span><br><span class="line"><span class="comment"># this is A</span></span><br></pre></td></tr></table></figure>
+
+<p>上面例子可以看出来，super(B, b)代理了b对象，执行了A中的test函数。（可以看到A中test函数中打印的self.__class__为类B，因此可以知道实际代理了b执行了其父类的函数）  </p>
+<h1 id="结语"><a href="#结语" class="headerlink" title="结语"></a>结语</h1><p>以上就是关于Python中多继承的一些细节，了解清楚之后就可以设计相对比较复杂的继承关系（不过不建议，简单能解决就简单搞），利用类的MRO搜索列表，就可以很清晰知道一个对象具体调用了哪个函数了。  </p>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Python/" rel="tag"># Python</a>
+          
+            <a href="/tags/多继承/" rel="tag"># 多继承</a>
+          
+            <a href="/tags/MRO/" rel="tag"># MRO</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2020/08/17/python_pdb_base/" rel="next" title="pdb基本使用方法">
+                <i class="fa fa-chevron-left"></i> pdb基本使用方法
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2020/09/23/python_mixin_design_pattern/" rel="prev" title="说一下Python中的mixin模式">
+                说一下Python中的mixin模式 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image" src="/images/header.jpg" alt="Mike John">
+            
+              <p class="site-author-name" itemprop="name">Mike John</p>
+              <div class="site-description motion-element" itemprop="description"></div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">17</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">7</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  
+                    
+                      <a href="/tags/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">23</span>
+                    <span class="site-state-item-name">标签</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+            <div class="links-of-author motion-element">
+              
+                <span class="links-of-author-item">
+                  
+                  
+                    
+                  
+                  
+                    
+                  
+                  <a href="mailto:hef1995@qq.com" title="E-Mail &rarr; mailto:hef1995@qq.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+                </span>
+              
+            </div>
+          
+
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#概要"><span class="nav-text">概要</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#新式类与古典类"><span class="nav-text">新式类与古典类</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#方法解析顺序MRO（Method-Resolution-Order）"><span class="nav-text">方法解析顺序MRO（Method Resolution Order）</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#C3-MRO算法"><span class="nav-text">C3 MRO算法</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#多继承与super"><span class="nav-text">多继承与super</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#什么是super"><span class="nav-text">什么是super</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#理解super的参数与调用规则"><span class="nav-text">理解super的参数与调用规则</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#结语"><span class="nav-text">结语</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2021</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Mike John</span>
+
+  
+
+  
+</div>
+
+
+
+
+
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+          <span id="scrollpercent"><span>0</span>%</span>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+
+  
+
+
+  <script src="/js/src/utils.js?v=7.0.1"></script>
+
+  <script src="/js/src/motion.js?v=7.0.1"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/src/affix.js?v=7.0.1"></script>
+
+  <script src="/js/src/schemes/pisces.js?v=7.0.1"></script>
+
+
+
+
+  
+  <script src="/js/src/scrollspy.js?v=7.0.1"></script>
+<script src="/js/src/post-details.js?v=7.0.1"></script>
+
+
+
+  
+
+
+  <script src="/js/src/next-boot.js?v=7.0.1"></script>
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+
+
+  
+  <script>
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url).replace(/\/{2,}/g, '/');
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x"></i></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x"></i></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+  
+
+  
+  
+
+  
+    
+      <script type="text/x-mathjax-config">
+  
+
+  MathJax.Hub.Config({
+    tex2jax: {
+      inlineMath: [ ['$', '$'], ['\\(', '\\)'] ],
+      processEscapes: true,
+      skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    },
+    TeX: {
+      
+        extensions: ["AMSmath.js", "AMSsymbols.js", "autobold.js"],
+      
+      equationNumbers: {
+        autoNumber: 'AMS'
+      }
+    }
+  });
+  MathJax.Hub.Register.StartupHook('TeX Jax Ready', function() {
+    MathJax.InputJax.TeX.prefilterHooks.Add(function(data) {
+      if (data.display) {
+        var next = data.script.nextSibling;
+        while (next && next.nodeName.toLowerCase() === '#text') { next = next.nextSibling }
+        if (next && next.nodeName.toLowerCase() === 'br') { next.parentNode.removeChild(next) }
+      }
+    });
+  });
+</script>
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for (i = 0; i < all.length; i += 1) {
+      document.getElementById(all[i].inputID + '-Frame').parentNode.className += ' has-jax';
+    }
+  });
+</script>
+
+<script type="text/javascript">
+$(document).ready(function(){
+  $("code").map(function(){
+    match = /^\$(.*)\$$/.exec($(this).html());
+    if (match) {
+      $(this).replaceWith("<span class=hpl_mathjax_inline>" + $(this).html() + "</span>");
+      MathJax.Hub.Queue(["Typeset",MathJax.Hub,$(this).get(0)]);
+    }
+    match = /^\$\$/.exec($(this).html());
+    if (match) {
+      $(this).replaceWith("<span class=hpl_mathjax_inline>" + $(this).html() + "</span>");
+      MathJax.Hub.Queue(["Typeset",MathJax.Hub,$(this).get(0)]);
+    }
+    match = /^\\begin/.exec($(this).html());
+    if (match) {
+      $(this).replaceWith("<span class=hpl_mathjax_inline>" + $(this).html() + "</span>");
+      MathJax.Hub.Queue(["Typeset",MathJax.Hub,$(this).get(0)]);
+    }
+  });
+});
+</script>
+
+<script src="//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-MML-AM_HTMLorMML"></script><!-- hexo-inject:begin --><!-- Begin: Injected MathJax -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({"tex2jax":{"inlineMath":[["$","$"],["\\(","\\)"]],"skipTags":["script","noscript","style","textarea","pre","code"],"processEscapes":true},"TeX":{"equationNumbers":{"autoNumber":"AMS"}}});
+</script>
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i=0; i < all.length; i += 1) {
+      all[i].SourceElement().parentNode.className += ' has-jax';
+    }
+  });
+</script>
+
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js">
+</script>
+<!-- End: Injected MathJax -->
+<!-- hexo-inject:end -->
+
+    
+  
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

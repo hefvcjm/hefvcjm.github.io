@@ -1,0 +1,1460 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next gemini use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2">
+
+<link rel="stylesheet" href="/css/main.css?v=7.0.1">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.0.1">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.0.1">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.0.1">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.0.1" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.0.1',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="概要本文只要讲述一下pdb(The Python Debugger)的基本使用方法，pdb提供了强大、灵活的Python调试功能。之前我一直用的Pycharm或者vscode带的调试器，但在我使用过程中发现它们有时候会出现某些意想不到问题后（本来想调试自己代码的问题，调着调着就变成找调试器的bug了&amp;gt;_&amp;lt;）。 Pycharm中的一个问题注:这里例子给的是Pycharm 2019.2.1">
+<meta name="keywords" content="Python,Debug,pdb">
+<meta property="og:type" content="article">
+<meta property="og:title" content="pdb基本使用方法">
+<meta property="og:url" content="http://www.hefvcjm.com/2020/08/17/python_pdb_base/index.html">
+<meta property="og:site_name" content="hefvcjm">
+<meta property="og:description" content="概要本文只要讲述一下pdb(The Python Debugger)的基本使用方法，pdb提供了强大、灵活的Python调试功能。之前我一直用的Pycharm或者vscode带的调试器，但在我使用过程中发现它们有时候会出现某些意想不到问题后（本来想调试自己代码的问题，调着调着就变成找调试器的bug了&amp;gt;_&amp;lt;）。 Pycharm中的一个问题注:这里例子给的是Pycharm 2019.2.1">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="http://www.hefvcjm.com/2020/08/17/python_pdb_base/pycharm_debug_code.png">
+<meta property="og:image" content="http://www.hefvcjm.com/2020/08/17/python_pdb_base/pycharm_debug_exception.png">
+<meta property="og:image" content="http://www.hefvcjm.com/2020/08/17/python_pdb_base/code_pic.png">
+<meta property="og:updated_time" content="2021-03-07T17:51:41.414Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="pdb基本使用方法">
+<meta name="twitter:description" content="概要本文只要讲述一下pdb(The Python Debugger)的基本使用方法，pdb提供了强大、灵活的Python调试功能。之前我一直用的Pycharm或者vscode带的调试器，但在我使用过程中发现它们有时候会出现某些意想不到问题后（本来想调试自己代码的问题，调着调着就变成找调试器的bug了&amp;gt;_&amp;lt;）。 Pycharm中的一个问题注:这里例子给的是Pycharm 2019.2.1">
+<meta name="twitter:image" content="http://www.hefvcjm.com/2020/08/17/python_pdb_base/pycharm_debug_code.png">
+
+
+
+
+
+
+  <link rel="canonical" href="http://www.hefvcjm.com/2020/08/17/python_pdb_base/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>pdb基本使用方法 | hefvcjm</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript><!-- hexo-inject:begin --><!-- hexo-inject:end -->
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">hefvcjm</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+    
+      
+    
+
+    
+      
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+
+    
+    
+    
+      
+    
+
+    
+      
+    
+
+    <a href="/about/" rel="section"><i class="menu-item-icon fa fa-fw fa-user"></i> <br>关于</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+    
+      
+    
+
+    
+      
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档<span class="badge">17</span></a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+
+    
+    
+    
+      
+    
+
+    
+      
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>分类<span class="badge">7</span></a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+
+    
+    
+    
+      
+    
+
+    
+      
+    
+
+    <a href="/tags/" rel="section"><i class="menu-item-icon fa fa-fw fa-tags"></i> <br>标签<span class="badge">23</span></a>
+
+  </li>
+
+      
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br>搜索</a>
+        </li>
+      
+    </ul>
+  
+
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off" placeholder="搜索..." spellcheck="false" type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+            
+
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.hefvcjm.com/2020/08/17/python_pdb_base/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Mike John">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/header.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="hefvcjm">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">pdb基本使用方法
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2020-08-17 23:08:05" itemprop="dateCreated datePublished" datetime="2020-08-17T23:08:05+08:00">2020-08-17</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2021-03-08 01:51:41" itemprop="dateModified" datetime="2021-03-08T01:51:41+08:00">2021-03-08</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Python/" itemprop="url" rel="index"><span itemprop="name">Python</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h1 id="概要"><a href="#概要" class="headerlink" title="概要"></a>概要</h1><p>本文只要讲述一下<code>pdb</code>(The Python Debugger)的基本使用方法，<code>pdb</code>提供了强大、灵活的Python调试功能。之前我一直用的<code>Pycharm</code>或者<code>vscode</code>带的调试器，但在我使用过程中发现它们有时候会出现某些意想不到问题后（本来想调试自己代码的问题，调着调着就变成找调试器的bug了&gt;_&lt;）。</p>
+<h2 id="Pycharm中的一个问题"><a href="#Pycharm中的一个问题" class="headerlink" title="Pycharm中的一个问题"></a>Pycharm中的一个问题</h2><p><strong>注:</strong>这里例子给的是<code>Pycharm 2019.2.1</code>这个版本的例子，不知道后面有没有更新解决  </p>
+<p><img src="/2020/08/17/python_pdb_base/pycharm_debug_code.png" alt="python debug">  </p>
+<p>如上面的工程，简单定义了两个文件，一个名为<code>threading.py</code>，里面啥也没有，一个就是<code>test.py</code>，代码就是图中简单的几行。设置断点开始调试，结果蹭蹭地弹出异常，如下图所示  </p>
+<p><img src="/2020/08/17/python_pdb_base/pycharm_debug_exception.png" alt="python pydevd.py exception">  </p>
+<p>呃呃，这个问题对于当时的我困扰许久，还以为<code>Pycharm</code>哪里没设置对，或者下载重装都没解决，后来大概看一下<code>pydevd.py</code>就发现问题。不过如果<code>import</code>的是内置的<code>threading</code>就不会出错，不过这种覆盖内置模块名字还是少干，容易出错，因为有时候你用的第三方库就依赖某个内置模块，而被你覆盖后就容易报错了。  </p>
+<h2 id="其他"><a href="#其他" class="headerlink" title="其他"></a>其他</h2><p>上面的问题跑到<code>vscode</code>中就不存在，可以正常调试。另外在<code>vscode</code>和<code>Pycharm</code>中调试某些程序的时候（这里还没总结出简单的例子，不过本文不是这个重点所以大概提提），发现调试器一直无法获取程序上下文，简单说就是卡住了，看不到有啥变量以及变量的值是啥，这样的使得程序无法继续调试。最后，最最重要的是，当你只能在服务器或者只能远程连接都只能用终端操作的时候，这个时候就没辙了，乖乖的用起<code>pdb</code>来调试了。。  </p>
+<h1 id="直奔主题——pdb基本使用"><a href="#直奔主题——pdb基本使用" class="headerlink" title="直奔主题——pdb基本使用"></a>直奔主题——pdb基本使用</h1><p>说了一堆屁话，该到本文主题了！<strong>这里示例是在<code>Python2.7</code>中演示。</strong></p>
+<h2 id="要调试的程序"><a href="#要调试的程序" class="headerlink" title="要调试的程序"></a>要调试的程序</h2><p>这里是一段有bug的程序，如下所示  </p>
+<pre><code class="Python"><span class="keyword">import</span> pdb
+pdb.set_trace()
+
+<span class="function"><span class="keyword">def</span> <span class="title">func1</span><span class="params">(x, y)</span>:</span>
+    a = <span class="number">0</span>
+    b = <span class="number">1</span>
+    result = <span class="number">0</span>
+    <span class="keyword">for</span> i <span class="keyword">in</span> range(<span class="number">100</span>):
+        result += x + y
+    <span class="keyword">if</span> result &gt; <span class="number">100</span>:
+        <span class="keyword">return</span> a
+    <span class="keyword">else</span>:
+        <span class="keyword">return</span> b
+
+
+<span class="function"><span class="keyword">def</span> <span class="title">func2</span><span class="params">(x)</span>:</span>
+    result = <span class="number">0</span>
+    result = func1(<span class="number">1</span>, <span class="number">2</span>)
+    <span class="keyword">return</span> result + x
+
+
+result = <span class="number">0</span>
+result = func2(<span class="number">1</span>)
+<span class="keyword">print</span> result</code></pre>
+<p>连接到服务器，如下图所示：  </p>
+<p><img src="/2020/08/17/python_pdb_base/code_pic.png" alt="代码片段">  </p>
+<h2 id="进入调试状态"><a href="#进入调试状态" class="headerlink" title="进入调试状态"></a>进入调试状态</h2><p>即将开始调试了，首先是进入调试状态，有两种方法，一种是侵入式的调试方法，也就是和上图一样，<code>import pdb</code>然后在需要停下来的地方添加<code>pdb.set_trace()</code>，然后运行<code>Python</code>程序后就会在<code>pdb.set_trace()</code>后一句停下来。另一种则不用动源码，直接用<code>python -m pdb xxx.py</code>启动程序，就会进入调试状态。  </p>
+<h2 id="常用调试命令"><a href="#常用调试命令" class="headerlink" title="常用调试命令"></a><span id="2.1"><a href="https://docs.python.org/2/library/pdb.html#debugger-commands" target="_blank" rel="noopener">常用调试命令</a></span></h2><p><strong>注：</strong>()表示可以省去，如<code>help</code>和<code>h</code>是一样的；[]表示选项，可以选择性输入。  </p>
+<table>
+<thead>
+<tr>
+<th align="center">命令</th>
+<th align="left">参数</th>
+<th align="left">说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">h(elp)</td>
+<td align="left">[command]</td>
+<td align="left">获取命令帮助，没有参数的话则会输出全部调试命令</td>
+</tr>
+<tr>
+<td align="center">w(here)</td>
+<td align="left">-</td>
+<td align="left">输出当前所在栈帧，<code>&gt;</code>表示当前所在的栈帧，<code>-&gt;</code>表示在每个栈帧中执行到的语句</td>
+</tr>
+<tr>
+<td align="center">d(own)</td>
+<td align="left">-</td>
+<td align="left">移到下一个栈帧，即当前上下文为所到的栈帧</td>
+</tr>
+<tr>
+<td align="center">u(p)</td>
+<td align="left">-</td>
+<td align="left">移到上一个栈帧，即当前上下文为所到的栈帧</td>
+</tr>
+<tr>
+<td align="center">b(reak)</td>
+<td align="left">[[filename:]lineno | function[, condition]]</td>
+<td align="left">参数可以是`文件名:行号</td>
+</tr>
+<tr>
+<td align="center">tbreak</td>
+<td align="left">同b(reak)</td>
+<td align="left">设置临时断点，参数同b(reak)，不同的是该断点进入一次后就被删除了</td>
+</tr>
+<tr>
+<td align="center">cl(ear)</td>
+<td align="left">[filename:lineno</td>
+<td align="left">bpnumber [bpnumber …]]</td>
+</tr>
+<tr>
+<td align="center">disable</td>
+<td align="left">[bpnumber [bpnumber …]]</td>
+<td align="left">禁止指定的多个断点，但不删除，需要的时候可以让其生效</td>
+</tr>
+<tr>
+<td align="center">enable</td>
+<td align="left">[bpnumber [bpnumber …]]</td>
+<td align="left">让指定的几个断点重新生效</td>
+</tr>
+<tr>
+<td align="center">ignore</td>
+<td align="left">bpnumber [count]</td>
+<td align="left">设置指定断点失效的次数，即在经过该断断点第<code>count+1</code>次的时候才会进入断点</td>
+</tr>
+<tr>
+<td align="center">condition</td>
+<td align="left">bpnumber [condition]</td>
+<td align="left">和设置断点的时候一样，对某个断点设置生效的条件</td>
+</tr>
+<tr>
+<td align="center">commands</td>
+<td align="left">[bpnumber]</td>
+<td align="left">可以在进入断点后执行一些命令集</td>
+</tr>
+<tr>
+<td align="center">j(ump)</td>
+<td align="left">lineno</td>
+<td align="left">跳转到指定行，指定的行必须在</td>
+</tr>
+<tr>
+<td align="center">l(ist)</td>
+<td align="left">[first[, last]]</td>
+<td align="left">列出从first到last之间的源代码，省略则列出当前执行点周围11行代码</td>
+</tr>
+<tr>
+<td align="center">a(rgs)</td>
+<td align="left">-</td>
+<td align="left">打印当前执行函数的参数</td>
+</tr>
+<tr>
+<td align="center">p</td>
+<td align="left">expression</td>
+<td align="left">执行一个python表达式</td>
+</tr>
+<tr>
+<td align="center">[!]</td>
+<td align="left">statement</td>
+<td align="left">执行一行python语句</td>
+</tr>
+<tr>
+<td align="center">run</td>
+<td align="left">[args …]</td>
+<td align="left">重启程序</td>
+</tr>
+<tr>
+<td align="center">q(uit)</td>
+<td align="left">-</td>
+<td align="left">退出调试器</td>
+</tr>
+</tbody></table>
+<h2 id="几个命令说明"><a href="#几个命令说明" class="headerlink" title="几个命令说明"></a>几个命令说明</h2><p>在上面<a href="#2.1">常用的命令</a>中，其中<code>b(reak)</code>,<code>c(ontinue)</code>,<code>s(tep)</code>,<code>n(ext)</code>,<code>r(eturn)</code>,<code>l(ist)</code>,<code>w(here)</code>这几个命令是更加常用的。  </p>
+<p>具体用法如上面表中所说那样，主要是要区分以下<code>c(ontinue)</code>,<code>s(tep)</code>,<code>n(ext)</code>的区别  </p>
+<ul>
+<li><code>c(ontinue)</code>表示继续执行，知道遇到下一个断点，如果没有了断点则自动重新启动程序；</li>
+<li><code>s(tep)</code>表示单步执行，一步一步走，遇到函数则进入函数继续一步步执行；</li>
+<li><code>n(ext)</code>表示在当前栈帧中一步步执行，遇到函数不会进去，而是当成一句直接执行再到下一句。</li>
+<li><code>r(eturn)</code>表示返回，直接跳到栈帧的最后一句（不是位置上的最后，而是执行中可达的最后），相当于如果是在函数中则直接调到函数返回的地方。  </li>
+</ul>
+<p>另外就是<code>b(reak)</code>加上条件，或者用<code>condition</code>给断点加个条件，在调试中有时候也很有用，比如说上面的代码在循环中，循环99次出现bug，要看看循环到100次的时候哪里出bug。在用IDE调试的时候我没找到什么好的方法，只能在源码中添加个<code>if</code>语句再循环99次的时候进入，然后就在<code>if</code>里面打断点。但是用<code>pdb</code>就可以给断点加个条件，当满足条件的时候才进入断点，上面的例子就可以设置断点为：  </p>
+<pre><code class="shell">(Pdb) b 10,i==99</code></pre>
+<p>这样的话就可以在进入断点前就循环了99次了，很是方便。当然也可以给已经打了的断点添加条件，利用的就是<code>condition</code>命令，比如说打在第10行的断点的断点号是1，那么就可以：  </p>
+<pre><code class="shell">(Pdb) condition 1 i==99</code></pre>
+<p>这样同样能达到上面的效果。  </p>
+<p>然后就是清除某个断点的条件了，具体的就是再执行以下<code>condition</code>命令，只是没写条件就ok了。  </p>
+<p>最后，要了解更多的命令细节，在实践中操作很容易掌握，凡事还是多动手才能熟练起来。  </p>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Python/" rel="tag"># Python</a>
+          
+            <a href="/tags/Debug/" rel="tag"># Debug</a>
+          
+            <a href="/tags/pdb/" rel="tag"># pdb</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2020/08/17/bintree_view/" rel="next" title="C/C++二叉树可视化">
+                <i class="fa fa-chevron-left"></i> C/C++二叉树可视化
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2020/09/15/python_mro_and_inherit/" rel="prev" title="理解Python的继承">
+                理解Python的继承 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image" src="/images/header.jpg" alt="Mike John">
+            
+              <p class="site-author-name" itemprop="name">Mike John</p>
+              <div class="site-description motion-element" itemprop="description"></div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">17</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">7</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  
+                    
+                      <a href="/tags/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">23</span>
+                    <span class="site-state-item-name">标签</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+            <div class="links-of-author motion-element">
+              
+                <span class="links-of-author-item">
+                  
+                  
+                    
+                  
+                  
+                    
+                  
+                  <a href="mailto:hef1995@qq.com" title="E-Mail &rarr; mailto:hef1995@qq.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+                </span>
+              
+            </div>
+          
+
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#概要"><span class="nav-text">概要</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Pycharm中的一个问题"><span class="nav-text">Pycharm中的一个问题</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#其他"><span class="nav-text">其他</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#直奔主题——pdb基本使用"><span class="nav-text">直奔主题——pdb基本使用</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#要调试的程序"><span class="nav-text">要调试的程序</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#进入调试状态"><span class="nav-text">进入调试状态</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#常用调试命令"><span class="nav-text">常用调试命令</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#几个命令说明"><span class="nav-text">几个命令说明</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2021</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Mike John</span>
+
+  
+
+  
+</div>
+
+
+
+
+
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+          <span id="scrollpercent"><span>0</span>%</span>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+
+  
+
+
+  <script src="/js/src/utils.js?v=7.0.1"></script>
+
+  <script src="/js/src/motion.js?v=7.0.1"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/src/affix.js?v=7.0.1"></script>
+
+  <script src="/js/src/schemes/pisces.js?v=7.0.1"></script>
+
+
+
+
+  
+  <script src="/js/src/scrollspy.js?v=7.0.1"></script>
+<script src="/js/src/post-details.js?v=7.0.1"></script>
+
+
+
+  
+
+
+  <script src="/js/src/next-boot.js?v=7.0.1"></script>
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+
+
+  
+  <script>
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url).replace(/\/{2,}/g, '/');
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x"></i></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x"></i></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script><!-- hexo-inject:begin --><!-- Begin: Injected MathJax -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({"tex2jax":{"inlineMath":[["$","$"],["\\(","\\)"]],"skipTags":["script","noscript","style","textarea","pre","code"],"processEscapes":true},"TeX":{"equationNumbers":{"autoNumber":"AMS"}}});
+</script>
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i=0; i < all.length; i += 1) {
+      all[i].SourceElement().parentNode.className += ' has-jax';
+    }
+  });
+</script>
+
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js">
+</script>
+<!-- End: Injected MathJax -->
+<!-- hexo-inject:end -->
+
+
+
+
+
+  
+
+  
+
+  
+  
+
+  
+  
+
+  
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
